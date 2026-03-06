@@ -8,15 +8,31 @@
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; background-color: #222; color: #fff; }
         
-        #home-screen { width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #1a1a1a; position: absolute; top: 0; left: 0; z-index: 100; transition: 0.3s; }
-        #home-screen h1 { font-size: 42px; color: #4CAF50; margin-bottom: 10px; }
-        #home-screen p { font-size: 22px; color: #aaa; margin-bottom: 40px; }
-        .home-btn { background-color: #007BFF; color: white; border: none; padding: 25px 50px; font-size: 22px; margin: 15px; border-radius: 12px; cursor: pointer; transition: 0.2s; width: 400px; font-weight: bold; }
-        .home-btn.green { background-color: #28A745; }
-        .home-btn:hover { filter: brightness(1.2); transform: scale(1.05); }
+        /* FULLSCREEN MENUS (Used for Home, Input, and Inversion screens) */
+        .fullscreen-menu { width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #1a1a1a; position: absolute; top: 0; left: 0; z-index: 100; transition: 0.3s; }
+        .fullscreen-menu h1 { font-size: 42px; color: #4CAF50; margin-bottom: 10px; text-align: center; }
+        .fullscreen-menu p { font-size: 22px; color: #aaa; margin-bottom: 30px; text-align: center; }
+        
+        .big-btn { background-color: #007BFF; color: white; border: none; padding: 20px 40px; font-size: 20px; margin: 10px; border-radius: 12px; cursor: pointer; transition: 0.2s; width: 350px; font-weight: bold; }
+        .big-btn.green { background-color: #28A745; }
+        .big-btn.purple { background-color: #9C27B0; }
+        .big-btn.gray { background-color: #555; width: auto; padding: 15px 30px; margin-top: 20px;}
+        .big-btn:hover { filter: brightness(1.2); transform: scale(1.05); }
 
+        /* INPUT SCREEN SPECIFICS */
+        .length-inputs { display: flex; flex-direction: column; gap: 15px; background: #2a2a2a; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); margin-bottom: 20px; }
+        .len-row { display: flex; align-items: center; justify-content: space-between; width: 300px; }
+        .len-row label { font-size: 20px; font-weight: bold; }
+        .len-row input { width: 100px; padding: 10px; font-size: 18px; font-weight: bold; text-align: center; background: #444; color: white; border: 2px solid #555; border-radius: 5px; }
+        #input-error { display: none; color: #F44336; font-size: 18px; font-weight: bold; margin-top: 15px; background: rgba(244, 67, 54, 0.2); padding: 15px; border-radius: 5px; border: 1px solid #F44336; }
+
+        /* INVERSION SCREEN SPECIFICS */
+        .stats-box { background: #2a2a2a; padding: 20px 40px; border-radius: 10px; border-left: 5px solid #4CAF50; margin-bottom: 25px; text-align: center;}
+        .stats-box h3 { margin: 5px 0; font-size: 24px; color: #fff; }
+        .stats-box h4 { margin: 5px 0; font-size: 20px; color: #bbb; }
+
+        /* APP SCREEN STYLES */
         #app-screen { width: 100%; height: 100%; display: none; flex-direction: row; }
-        /* WIDENED SIDEBAR FOR DESKTOP */
         #sidebar { width: 400px; background-color: #2a2a2a; padding: 30px; overflow-y: auto; box-shadow: 5px 0 15px rgba(0,0,0,0.8); z-index: 10; }
         #main { flex-grow: 1; position: relative; display: flex; flex-direction: column; }
         canvas { background-color: #111; width: 100%; height: 100%; display: block; }
@@ -26,13 +42,15 @@
         .back-btn:hover { color: #bbdefb; text-decoration: underline; }
         
         .control-group { margin-bottom: 20px; }
-        /* LARGER FONTS */
         label { display: block; margin-bottom: 8px; font-size: 16px; color: #ddd; font-weight: bold; }
         .input-row { display: flex; align-items: center; gap: 15px; }
         .input-row input[type="range"] { flex-grow: 1; cursor: pointer; height: 8px; }
-        /* LARGER TEXT BOXES */
         .input-row input[type="number"] { width: 80px; background: #444; color: white; border: 1px solid #777; border-radius: 5px; padding: 8px; font-size: 16px; font-weight: bold; text-align: center; }
         
+        /* FIXED LENGTHS DISPLAY (Read-Only) */
+        .locked-lengths { background: #111; border: 1px solid #555; padding: 15px; border-radius: 8px; font-size: 16px; line-height: 1.6; color: #bbb; }
+        .locked-lengths span { color: #4CAF50; font-weight: bold; float: right; }
+
         #fourbar-controls, #slider-controls { display: none; }
         #fourbar-controls.active, #slider-controls.active { display: block; }
         hr { border-color: #555; margin: 25px 0; }
@@ -55,26 +73,66 @@
 </head>
 <body>
 
-    <div id="home-screen">
+    <div id="home-screen" class="fullscreen-menu">
         <h1>⚙️ Universal Kinematics Dashboard</h1>
         <p>Select a mechanism to simulate:</p>
-        <button class="home-btn" onclick="openMech('fourbar')">Four-Bar Mechanism</button>
-        <button class="home-btn green" onclick="openMech('slider')">Slider-Crank Mechanism</button>
+        <button class="big-btn" onclick="showScreen('fourbar-input-screen')">Four-Bar Mechanism</button>
+        <button class="big-btn green" onclick="initSliderCrank()">Slider-Crank Mechanism</button>
+    </div>
+
+    <div id="fourbar-input-screen" class="fullscreen-menu" style="display: none;">
+        <h1>📐 Define Geometry</h1>
+        <p>Enter the lengths of the 4 links forming the loop:</p>
+        
+        <div class="length-inputs">
+            <div class="len-row"><label>Link A:</label><input type="number" id="len-A" value="8" min="0.1" step="0.5"></div>
+            <div class="len-row"><label>Link B:</label><input type="number" id="len-B" value="3" min="0.1" step="0.5"></div>
+            <div class="len-row"><label>Link C:</label><input type="number" id="len-C" value="7" min="0.1" step="0.5"></div>
+            <div class="len-row"><label>Link D:</label><input type="number" id="len-D" value="6" min="0.1" step="0.5"></div>
+        </div>
+
+        <button class="big-btn purple" onclick="validateGeometry()">Verify Geometry ➡️</button>
+        <button class="big-btn gray" onclick="showScreen('home-screen')">⬅️ Back to Menu</button>
+        
+        <div id="input-error">⚠️ Cannot construct a quadrilateral (Longest link must be shorter than the sum of the other three).</div>
+    </div>
+
+    <div id="fourbar-inversion-screen" class="fullscreen-menu" style="display: none;">
+        <h1>🔄 Select Inversion</h1>
+        <p>Choose which link to bolt to the ground.</p>
+        
+        <div class="stats-box">
+            <h3 id="inv-grashof">Status: Grashof Mechanism ✅</h3>
+            <h4 id="inv-shortest">Shortest Link: B (3)</h4>
+        </div>
+
+        <button class="big-btn" id="btn-inv-A" onclick="setInversion('A')">Ground Link A</button>
+        <button class="big-btn" id="btn-inv-B" onclick="setInversion('B')">Ground Link B</button>
+        <button class="big-btn" id="btn-inv-C" onclick="setInversion('C')">Ground Link C</button>
+        <button class="big-btn" id="btn-inv-D" onclick="setInversion('D')">Ground Link D</button>
+
+        <button class="big-btn gray" onclick="showScreen('fourbar-input-screen')">⬅️ Edit Lengths</button>
     </div>
 
     <div id="app-screen">
         <div id="sidebar">
-            <button class="back-btn" onclick="goHome()">⬅️ Back to Main Menu</button>
+            <button class="back-btn" onclick="showScreen('home-screen')">⬅️ Back to Main Menu</button>
             <h2 id="mech-title">Controls</h2>
             
             <div id="status" class="status-good">Status: Grashof</div>
             <hr>
 
             <div id="fourbar-controls">
-                <div class="control-group"><label>L1 (Ground)</label><div class="input-row"><input type="range" id="L1" min="1" max="25" step="0.5" value="8" oninput="sync('L1')"><input type="number" id="num-L1" value="8" step="0.5" oninput="sync('num-L1')"></div></div>
-                <div class="control-group"><label>L2 (Crank)</label><div class="input-row"><input type="range" id="L2" min="1" max="25" step="0.5" value="3" oninput="sync('L2')"><input type="number" id="num-L2" value="3" step="0.5" oninput="sync('num-L2')"></div></div>
-                <div class="control-group"><label>L3 (Coupler)</label><div class="input-row"><input type="range" id="L3" min="1" max="25" step="0.5" value="7" oninput="sync('L3')"><input type="number" id="num-L3" value="7" step="0.5" oninput="sync('num-L3')"></div></div>
-                <div class="control-group"><label>L4 (Rocker)</label><div class="input-row"><input type="range" id="L4" min="1" max="25" step="0.5" value="6" oninput="sync('L4')"><input type="number" id="num-L4" value="6" step="0.5" oninput="sync('num-L4')"></div></div>
+                <div class="control-group">
+                    <label>🔒 Locked Link Geometry</label>
+                    <div class="locked-lengths">
+                        Ground (L1): <span id="disp-L1">8</span><br>
+                        Crank (L2): <span id="disp-L2">3</span><br>
+                        Coupler (L3): <span id="disp-L3">7</span><br>
+                        Rocker (L4): <span id="disp-L4">6</span>
+                    </div>
+                    <button class="plot-btn" style="background-color: #007BFF; padding: 10px; font-size: 14px;" onclick="showScreen('fourbar-input-screen')">✏️ Change Link Lengths</button>
+                </div>
                 <hr>
                 <div class="control-group"><label>Coupler Ext Length</label><div class="input-row"><input type="range" id="CpL" min="0" max="25" step="0.5" value="4" oninput="sync('CpL')"><input type="number" id="num-CpL" value="4" step="0.5" oninput="sync('num-CpL')"></div></div>
                 <div class="control-group"><label>Coupler Angle (deg)</label><div class="input-row"><input type="range" id="CpA" min="-180" max="180" step="5" value="45" oninput="sync('CpA')"><input type="number" id="num-CpA" value="45" step="5" oninput="sync('num-CpA')"></div></div>
@@ -89,18 +147,12 @@
             <hr>
             <div class="control-group">
                 <label>Animation Speed</label>
-                <div class="input-row">
-                    <input type="range" id="speed" min="0" max="10" step="0.5" value="3" oninput="sync('speed')">
-                    <input type="number" id="num-speed" value="3" step="0.5" oninput="sync('num-speed')">
-                </div>
+                <div class="input-row"><input type="range" id="speed" min="0" max="10" step="0.5" value="3" oninput="sync('speed')"><input type="number" id="num-speed" value="3" step="0.5" oninput="sync('num-speed')"></div>
             </div>
             
             <div class="control-group">
                 <label>🔍 Camera Zoom (%)</label>
-                <div class="input-row">
-                    <input type="range" id="zoom" min="20" max="300" step="5" value="120" oninput="sync('zoom')">
-                    <input type="number" id="num-zoom" value="120" step="5" oninput="sync('num-zoom')">
-                </div>
+                <div class="input-row"><input type="range" id="zoom" min="20" max="300" step="5" value="120" oninput="sync('zoom')"><input type="number" id="num-zoom" value="120" step="5" oninput="sync('num-zoom')"></div>
             </div>
 
             <button class="plot-btn" onclick="generatePlots()">📊 Generate Kinematic Plots</button>
@@ -121,7 +173,6 @@
             </div>
         </div>
     </div>
-
     <script>
         const canvas = document.getElementById('simCanvas');
         const ctx = canvas.getContext('2d');
@@ -134,31 +185,115 @@
         let validAngles = []; 
         let isAnimating = false; 
 
+        // GLOBALS TO HOLD FOUR-BAR INVERSION
+        let activeL1 = 8, activeL2 = 3, activeL3 = 7, activeL4 = 6;
+
         function resize() { canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; if(isAnimating) calcTrace(); }
         window.addEventListener('resize', resize);
 
-        function openMech(mech) {
+        // NAVIGATION LOGIC (FIXED PAUSE BUG)
+        function showScreen(screenId) {
             document.getElementById('home-screen').style.display = 'none';
-            document.getElementById('app-screen').style.display = 'flex';
-            currentMech = mech;
-            document.getElementById('fourbar-controls').classList.toggle('active', mech === 'fourbar');
-            document.getElementById('slider-controls').classList.toggle('active', mech === 'slider');
-            document.getElementById('mech-title').innerText = mech === 'fourbar' ? "Four-Bar Controls" : "Slider-Crank Controls";
-            
-            if (mech === 'fourbar') { sync('L1'); sync('L2'); sync('L3'); sync('L4'); }
-            else { sync('R'); sync('L-sl'); sync('E'); }
-            
-            sync('zoom'); // Ensure zoom applies instantly
-            
-            theta = 0; tracePath = []; validAngles = []; isAnimating = true;
-            resize(); 
-        }
-
-        function goHome() {
-            document.getElementById('home-screen').style.display = 'flex';
+            document.getElementById('fourbar-input-screen').style.display = 'none';
+            document.getElementById('fourbar-inversion-screen').style.display = 'none';
             document.getElementById('app-screen').style.display = 'none';
             document.getElementById('plot-modal').style.display = 'none';
-            isAnimating = false; 
+            
+            // Only turn off animation if we are NOT going to the app screen
+            if (screenId !== 'app-screen') {
+                isAnimating = false;
+            }
+            
+            document.getElementById(screenId).style.display = 'flex';
+        }
+
+        // SLIDER CRANK DIRECT BYPASS
+        function initSliderCrank() {
+            currentMech = 'slider';
+            document.getElementById('fourbar-controls').classList.remove('active');
+            document.getElementById('slider-controls').classList.add('active');
+            document.getElementById('mech-title').innerText = "Slider-Crank Controls";
+            
+            sync('R'); sync('L-sl'); sync('E'); sync('zoom');
+            
+            theta = 0; tracePath = []; validAngles = []; 
+            showScreen('app-screen');
+            isAnimating = true; // Moved AFTER showScreen
+            resize();
+        }
+
+        // STEP 1: VALIDATE GEOMETRY
+        function validateGeometry() {
+            let a = parseFloat(document.getElementById('len-A').value);
+            let b = parseFloat(document.getElementById('len-B').value);
+            let c = parseFloat(document.getElementById('len-C').value);
+            let d = parseFloat(document.getElementById('len-D').value);
+            
+            let maxL = Math.max(a, b, c, d);
+            let sumL = a + b + c + d;
+            let errDiv = document.getElementById('input-error');
+
+            // Triangle Inequality for Quadrilateral
+            if (maxL >= sumL - maxL) {
+                errDiv.style.display = "block";
+                return;
+            }
+            errDiv.style.display = "none";
+
+            // Determine Grashof and Shortest
+            let sorted = [a, b, c, d].sort((x, y) => x - y);
+            let s = sorted[0], l = sorted[3], p = sorted[1], q = sorted[2];
+            let isGrashof = (s + l <= p + q);
+
+            let shortName = "A";
+            if(s === b) shortName = "B";
+            else if(s === c) shortName = "C";
+            else if(s === d) shortName = "D";
+
+            document.getElementById('inv-grashof').innerText = isGrashof ? "Status: Grashof Mechanism ✅" : "Status: Non-Grashof (Rocker) ⚠️";
+            document.getElementById('inv-grashof').style.color = isGrashof ? "#4CAF50" : "#FFC107";
+            document.getElementById('inv-shortest').innerText = `Shortest Link: ${shortName} (${s})`;
+
+            // Rename Buttons dynamically
+            document.getElementById('btn-inv-A').innerText = `Ground Link A (${a})`;
+            document.getElementById('btn-inv-B').innerText = `Ground Link B (${b})`;
+            document.getElementById('btn-inv-C').innerText = `Ground Link C (${c})`;
+            document.getElementById('btn-inv-D').innerText = `Ground Link D (${d})`;
+
+            showScreen('fourbar-inversion-screen');
+        }
+
+        // STEP 2: APPLY INVERSION & LAUNCH APP
+        function setInversion(ground) {
+            let a = parseFloat(document.getElementById('len-A').value);
+            let b = parseFloat(document.getElementById('len-B').value);
+            let c = parseFloat(document.getElementById('len-C').value);
+            let d = parseFloat(document.getElementById('len-D').value);
+
+            // Assign Loop based on ground
+            if (ground === 'A') { activeL1=a; activeL2=b; activeL3=c; activeL4=d; }
+            else if (ground === 'B') { activeL1=b; activeL2=c; activeL3=d; activeL4=a; }
+            else if (ground === 'C') { activeL1=c; activeL2=d; activeL3=a; activeL4=b; }
+            else if (ground === 'D') { activeL1=d; activeL2=a; activeL3=b; activeL4=c; }
+
+            // Update UI displays
+            document.getElementById('disp-L1').innerText = activeL1;
+            document.getElementById('disp-L2').innerText = activeL2;
+            document.getElementById('disp-L3').innerText = activeL3;
+            document.getElementById('disp-L4').innerText = activeL4;
+
+            // Setup App Screen
+            currentMech = 'fourbar';
+            document.getElementById('fourbar-controls').classList.add('active');
+            document.getElementById('slider-controls').classList.remove('active');
+            document.getElementById('mech-title').innerText = "Four-Bar Controls";
+            
+            sync('CpL'); sync('CpA'); sync('zoom');
+            
+            theta = 0; tracePath = []; validAngles = []; 
+            showScreen('app-screen');
+            isAnimating = true; // Moved AFTER showScreen
+            resize();
         }
 
         function sync(sourceId) {
@@ -171,16 +306,14 @@
             if(baseId !== 'speed' && baseId !== 'zoom') calcTrace();
         }
 
+        // PHYSICS CALCULATION
         function calcTrace() {
             tracePath = [];
             validAngles = []; 
             let validCount = 0;
 
             if (currentMech === 'fourbar') {
-                let l1 = parseFloat(document.getElementById('L1').value);
-                let l2 = parseFloat(document.getElementById('L2').value);
-                let l3 = parseFloat(document.getElementById('L3').value);
-                let l4 = parseFloat(document.getElementById('L4').value);
+                let l1 = activeL1, l2 = activeL2, l3 = activeL3, l4 = activeL4;
                 let cpL = parseFloat(document.getElementById('CpL').value);
                 let cpA = parseFloat(document.getElementById('CpA').value) * (Math.PI / 180);
 
@@ -222,13 +355,9 @@
                     }
                 }
             }
-
-            if (validCount === 0) {
-                document.getElementById('status').innerText = "ERROR: Cannot Assemble!";
-                document.getElementById('status').className = "status-bad";
-            }
         }
 
+        // CALCULUS HELPERS
         function getDerivative(yArray, dx) {
             let dy = [];
             for(let i = 0; i < yArray.length; i++) {
@@ -250,8 +379,10 @@
             return res;
         }
 
+        // PLOTTING ENGINE
         function generatePlots() {
-            if(document.getElementById('status').innerText.includes("ERROR")) return alert("Mechanism is broken. Fix dimensions first.");
+            let statText = document.getElementById('status').innerText;
+            if(statText.includes("Error") || statText.includes("Cannot")) return alert("Mechanism is broken. Fix dimensions first.");
 
             let xData = [], yVel = [], yAcc = [];
             let pxArray = [], pyArray = []; 
@@ -259,10 +390,7 @@
             let dx = 0.05; 
 
             if (currentMech === 'fourbar') {
-                let l1 = parseFloat(document.getElementById('L1').value);
-                let l2 = parseFloat(document.getElementById('L2').value);
-                let l3 = parseFloat(document.getElementById('L3').value);
-                let l4 = parseFloat(document.getElementById('L4').value);
+                let l1 = activeL1, l2 = activeL2, l3 = activeL3, l4 = activeL4;
                 let cpL = parseFloat(document.getElementById('CpL').value);
                 let cpA = parseFloat(document.getElementById('CpA').value) * (Math.PI / 180);
                 
@@ -330,6 +458,7 @@
             Plotly.newPlot('graph-acc', [traceAcc], layoutAcc, {responsive: true});
         }
 
+        // DRAWING HELPERS
         function drawLine(x1, y1, x2, y2, color, pixelWidth) {
             ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
             ctx.strokeStyle = color; ctx.lineWidth = pixelWidth / currentScale; 
@@ -341,34 +470,21 @@
             ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5 / currentScale; ctx.stroke();
         }
 
+        // RENDER LOOP
         function animate() {
             if (!isAnimating) { requestAnimationFrame(animate); return; }
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            let statText = document.getElementById('status').innerText;
-            
-            if (statText.includes("ERROR")) {
-                ctx.fillStyle = "#F44336";
-                ctx.font = "bold 32px Arial";
-                ctx.textAlign = "center";
-                ctx.fillText("⚠️ Impossible Geometry: Cannot Assemble", canvas.width / 2, canvas.height / 2);
-                requestAnimationFrame(animate); return;
-            }
-
             let speed = parseFloat(document.getElementById('speed').value) * 0.02;
             let zoomPct = parseFloat(document.getElementById('zoom').value) / 100;
             
             ctx.save();
-            // NEW DYNAMIC CAMERA ZOOM MATH
             currentScale = (Math.min(canvas.width, canvas.height) / 40) * zoomPct; 
             ctx.translate(canvas.width / 2 - (currentScale * 5), canvas.height / 2);
             ctx.scale(currentScale, -currentScale); 
 
             if (currentMech === 'fourbar') {
-                let l1 = parseFloat(document.getElementById('L1').value);
-                let l2 = parseFloat(document.getElementById('L2').value);
-                let l3 = parseFloat(document.getElementById('L3').value);
-                let l4 = parseFloat(document.getElementById('L4').value);
+                let l1 = activeL1, l2 = activeL2, l3 = activeL3, l4 = activeL4;
                 let cpL = parseFloat(document.getElementById('CpL').value);
                 let cpA = parseFloat(document.getElementById('CpA').value) * (Math.PI / 180);
 
@@ -416,10 +532,10 @@
                     ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(px, py); ctx.closePath();
                     ctx.fillStyle = 'rgba(0, 255, 255, 0.3)'; ctx.fill();
 
-                    drawLine(0, 0, l1, 0, '#9E9E9E', 8); // Ground
-                    drawLine(0, 0, ax, ay, '#FF5252', 8); // Crank
-                    drawLine(ax, ay, bx, by, '#4CAF50', 8); // Coupler
-                    drawLine(l1, 0, bx, by, '#2196F3', 8); // Rocker
+                    drawLine(0, 0, l1, 0, '#9E9E9E', 8); 
+                    drawLine(0, 0, ax, ay, '#FF5252', 8); 
+                    drawLine(ax, ay, bx, by, '#4CAF50', 8); 
+                    drawLine(l1, 0, bx, by, '#2196F3', 8); 
 
                     drawJoint(0, 0, '#9E9E9E'); drawJoint(l1, 0, '#9E9E9E');
                     drawJoint(ax, ay, '#FF5252'); drawJoint(bx, by, '#2196F3');
