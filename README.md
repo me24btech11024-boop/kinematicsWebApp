@@ -6,49 +6,51 @@
     <title>Universal Kinematics Dashboard</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; background-color: #222; color: #fff; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; background-color: #222; color: #fff; }
         
         #home-screen { width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #1a1a1a; position: absolute; top: 0; left: 0; z-index: 100; transition: 0.3s; }
-        #home-screen h1 { font-size: 36px; color: #4CAF50; margin-bottom: 10px; }
-        #home-screen p { font-size: 20px; color: #aaa; margin-bottom: 40px; }
-        .home-btn { background-color: #007BFF; color: white; border: none; padding: 20px 40px; font-size: 20px; margin: 10px; border-radius: 10px; cursor: pointer; transition: 0.2s; width: 350px; }
+        #home-screen h1 { font-size: 42px; color: #4CAF50; margin-bottom: 10px; }
+        #home-screen p { font-size: 22px; color: #aaa; margin-bottom: 40px; }
+        .home-btn { background-color: #007BFF; color: white; border: none; padding: 25px 50px; font-size: 22px; margin: 15px; border-radius: 12px; cursor: pointer; transition: 0.2s; width: 400px; font-weight: bold; }
         .home-btn.green { background-color: #28A745; }
         .home-btn:hover { filter: brightness(1.2); transform: scale(1.05); }
 
         #app-screen { width: 100%; height: 100%; display: none; flex-direction: row; }
-        #sidebar { width: 340px; background-color: #333; padding: 20px; overflow-y: auto; box-shadow: 2px 0 5px rgba(0,0,0,0.5); z-index: 10; }
+        /* WIDENED SIDEBAR FOR DESKTOP */
+        #sidebar { width: 400px; background-color: #2a2a2a; padding: 30px; overflow-y: auto; box-shadow: 5px 0 15px rgba(0,0,0,0.8); z-index: 10; }
         #main { flex-grow: 1; position: relative; display: flex; flex-direction: column; }
         canvas { background-color: #111; width: 100%; height: 100%; display: block; }
         
-        h2 { margin-top: 20px; color: #4CAF50; border-bottom: 2px solid #555; padding-bottom: 10px; }
-        .back-btn { background: none; border: none; color: #64B5F6; font-size: 16px; cursor: pointer; padding: 0; font-weight: bold; margin-bottom: 10px; }
+        h2 { margin-top: 20px; color: #4CAF50; border-bottom: 2px solid #555; padding-bottom: 10px; font-size: 28px; }
+        .back-btn { background: none; border: none; color: #64B5F6; font-size: 18px; cursor: pointer; padding: 0; font-weight: bold; margin-bottom: 15px; }
         .back-btn:hover { color: #bbdefb; text-decoration: underline; }
         
-        .control-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-size: 14px; color: #ccc; }
-        .input-row { display: flex; align-items: center; gap: 10px; }
-        .input-row input[type="range"] { flex-grow: 1; cursor: pointer; }
-        .input-row input[type="number"] { width: 65px; background: #444; color: white; border: 1px solid #666; border-radius: 4px; padding: 5px; font-weight: bold; text-align: center; }
+        .control-group { margin-bottom: 20px; }
+        /* LARGER FONTS */
+        label { display: block; margin-bottom: 8px; font-size: 16px; color: #ddd; font-weight: bold; }
+        .input-row { display: flex; align-items: center; gap: 15px; }
+        .input-row input[type="range"] { flex-grow: 1; cursor: pointer; height: 8px; }
+        /* LARGER TEXT BOXES */
+        .input-row input[type="number"] { width: 80px; background: #444; color: white; border: 1px solid #777; border-radius: 5px; padding: 8px; font-size: 16px; font-weight: bold; text-align: center; }
         
         #fourbar-controls, #slider-controls { display: none; }
         #fourbar-controls.active, #slider-controls.active { display: block; }
-        hr { border-color: #555; margin: 20px 0; }
+        hr { border-color: #555; margin: 25px 0; }
         
-        #status { font-weight: bold; margin-top: 10px; padding: 10px; border-radius: 5px; text-align: center; }
-        .status-good { background-color: rgba(76, 175, 80, 0.2); color: #4CAF50; border: 1px solid #4CAF50; }
-        .status-bad { background-color: rgba(244, 67, 54, 0.2); color: #F44336; border: 1px solid #F44336; }
+        #status { font-size: 18px; font-weight: bold; margin-top: 15px; padding: 15px; border-radius: 8px; text-align: center; }
+        .status-good { background-color: rgba(76, 175, 80, 0.2); color: #4CAF50; border: 2px solid #4CAF50; }
+        .status-bad { background-color: rgba(244, 67, 54, 0.2); color: #F44336; border: 2px solid #F44336; }
 
-        .plot-btn { width: 100%; padding: 12px; background-color: #9C27B0; color: white; border: none; font-size: 16px; cursor: pointer; border-radius: 5px; margin-top: 10px; font-weight: bold; }
-        .plot-btn:hover { background-color: #AB47BC; }
+        .plot-btn { width: 100%; padding: 18px; background-color: #9C27B0; color: white; border: none; font-size: 18px; cursor: pointer; border-radius: 8px; margin-top: 15px; font-weight: bold; transition: 0.2s; }
+        .plot-btn:hover { background-color: #AB47BC; transform: translateY(-2px); }
 
-        #plot-modal { display: none; position: absolute; top: 5%; left: 5%; width: 90%; height: 90%; background: #f4f4f4; z-index: 50; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.8); flex-direction: column; overflow: hidden; }
-        .modal-header { padding: 15px; background: #333; display: flex; justify-content: space-between; align-items: center; }
-        .modal-header h3 { margin: 0; color: white; }
-        .close-btn { background: #F44336; border: none; color: white; padding: 8px 15px; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        #plot-modal { display: none; position: absolute; top: 5%; left: 5%; width: 90%; height: 90%; background: #f4f4f4; z-index: 50; border-radius: 12px; box-shadow: 0 0 30px rgba(0,0,0,0.9); flex-direction: column; overflow: hidden; }
+        .modal-header { padding: 20px; background: #222; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #9C27B0; }
+        .modal-header h3 { margin: 0; color: white; font-size: 24px; }
+        .close-btn { background: #F44336; border: none; color: white; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px; font-weight: bold; }
         
-        /* Updated layout to stack graphs nicely so we can fit the Coupler Curve */
-        .graphs-container { display: flex; flex-direction: column; overflow-y: auto; height: 100%; width: 100%; padding: 20px; box-sizing: border-box; background: #e0e0e0;}
-        .graph-box { width: 100%; height: 350px; margin-bottom: 20px; flex-shrink: 0; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); padding: 10px;}
+        .graphs-container { display: flex; flex-direction: column; overflow-y: auto; height: 100%; width: 100%; padding: 30px; box-sizing: border-box; background: #e0e0e0;}
+        .graph-box { width: 100%; height: 400px; margin-bottom: 30px; flex-shrink: 0; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); padding: 15px;}
     </style>
 </head>
 <body>
@@ -92,6 +94,14 @@
                     <input type="number" id="num-speed" value="3" step="0.5" oninput="sync('num-speed')">
                 </div>
             </div>
+            
+            <div class="control-group">
+                <label>🔍 Camera Zoom (%)</label>
+                <div class="input-row">
+                    <input type="range" id="zoom" min="20" max="300" step="5" value="120" oninput="sync('zoom')">
+                    <input type="number" id="num-zoom" value="120" step="5" oninput="sync('num-zoom')">
+                </div>
+            </div>
 
             <button class="plot-btn" onclick="generatePlots()">📊 Generate Kinematic Plots</button>
         </div>
@@ -121,7 +131,7 @@
         let theta = 0; 
         let direction = 1; 
         let tracePath = []; 
-        let validAngles = []; // Saves all safe angles so we never go blank
+        let validAngles = []; 
         let isAnimating = false; 
 
         function resize() { canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; if(isAnimating) calcTrace(); }
@@ -137,6 +147,8 @@
             
             if (mech === 'fourbar') { sync('L1'); sync('L2'); sync('L3'); sync('L4'); }
             else { sync('R'); sync('L-sl'); sync('E'); }
+            
+            sync('zoom'); // Ensure zoom applies instantly
             
             theta = 0; tracePath = []; validAngles = []; isAnimating = true;
             resize(); 
@@ -155,12 +167,13 @@
             let numBox = document.getElementById('num-' + baseId);
             if (sourceId.startsWith('num-')) slider.value = numBox.value;
             else numBox.value = slider.value;
-            calcTrace();
+            
+            if(baseId !== 'speed' && baseId !== 'zoom') calcTrace();
         }
 
         function calcTrace() {
             tracePath = [];
-            validAngles = []; // Reset safe zones
+            validAngles = []; 
             let validCount = 0;
 
             if (currentMech === 'fourbar') {
@@ -185,7 +198,7 @@
                         let phi2 = Math.acos((l3*l3 + dist*dist - l4*l4) / (2 * l3 * dist));
                         let th3 = phi1 - phi2;
                         tracePath.push({ x: ax + cpL * Math.cos(th3 + cpA), y: ay + cpL * Math.sin(th3 + cpA) });
-                        validAngles.push(t); // Map the safe zone
+                        validAngles.push(t); 
                         validCount++;
                     }
                 }
@@ -241,7 +254,7 @@
             if(document.getElementById('status').innerText.includes("ERROR")) return alert("Mechanism is broken. Fix dimensions first.");
 
             let xData = [], yVel = [], yAcc = [];
-            let pxArray = [], pyArray = []; // Tracing Coupler X and Y
+            let pxArray = [], pyArray = []; 
             let titleVel = "", titleAcc = "";
             let dx = 0.05; 
 
@@ -264,7 +277,6 @@
                         let bx = ax + l3 * Math.cos(th3), by = ay + l3 * Math.sin(th3);
                         let th4 = Math.atan2(by, bx - l1);
                         
-                        // Capture Coupler Data
                         pxArray.push(ax + cpL * Math.cos(th3 + cpA));
                         pyArray.push(ay + cpL * Math.sin(th3 + cpA));
 
@@ -279,7 +291,6 @@
                 titleVel = "Rocker Angular Velocity (ω4)";
                 titleAcc = "Rocker Angular Acceleration (α4)";
 
-                // Plot the specific Coupler Trace path
                 document.getElementById('graph-trace').style.display = "block";
                 let traceCoupler = { x: pxArray, y: pyArray, mode: 'lines', line: {color: 'cyan', width: 2} };
                 let layoutTrace = { title: "Coupler Exact Value Trace (Y vs X)", xaxis: {title: 'X Coordinate'}, yaxis: {title: 'Y Coordinate', scaleanchor: 'x'}, margin: {t:40, b:40, l:40, r:20} };
@@ -290,7 +301,7 @@
                 let l = parseFloat(document.getElementById('L-sl').value);
                 let e = parseFloat(document.getElementById('E').value);
 
-                document.getElementById('graph-trace').style.display = "none"; // Hide trace graph for slider
+                document.getElementById('graph-trace').style.display = "none"; 
 
                 let xB_array = [];
                 for (let t = 0; t <= Math.PI * 2; t += dx) {
@@ -325,7 +336,7 @@
             ctx.lineCap = 'round'; ctx.stroke();
         }
         function drawJoint(x, y, color) {
-            ctx.beginPath(); ctx.arc(x, y, 5 / currentScale, 0, Math.PI * 2); 
+            ctx.beginPath(); ctx.arc(x, y, 6 / currentScale, 0, Math.PI * 2); 
             ctx.fillStyle = color; ctx.fill();
             ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5 / currentScale; ctx.stroke();
         }
@@ -336,19 +347,20 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             let statText = document.getElementById('status').innerText;
             
-            // Draw impossible geometry warning directly on screen instead of crashing
             if (statText.includes("ERROR")) {
                 ctx.fillStyle = "#F44336";
-                ctx.font = "bold 24px Arial";
+                ctx.font = "bold 32px Arial";
                 ctx.textAlign = "center";
                 ctx.fillText("⚠️ Impossible Geometry: Cannot Assemble", canvas.width / 2, canvas.height / 2);
                 requestAnimationFrame(animate); return;
             }
 
             let speed = parseFloat(document.getElementById('speed').value) * 0.02;
+            let zoomPct = parseFloat(document.getElementById('zoom').value) / 100;
             
             ctx.save();
-            currentScale = Math.min(canvas.width, canvas.height) / 40; 
+            // NEW DYNAMIC CAMERA ZOOM MATH
+            currentScale = (Math.min(canvas.width, canvas.height) / 40) * zoomPct; 
             ctx.translate(canvas.width / 2 - (currentScale * 5), canvas.height / 2);
             ctx.scale(currentScale, -currentScale); 
 
@@ -360,16 +372,11 @@
                 let cpL = parseFloat(document.getElementById('CpL').value);
                 let cpA = parseFloat(document.getElementById('CpA').value) * (Math.PI / 180);
 
-                // SNAP-TO-SAFE ZONE MATH
-                // If you input a number that puts you in a broken spot, teleport to the nearest safe angle
                 let currentDist = Math.hypot(l1 - l2 * Math.cos(theta), -l2 * Math.sin(theta));
                 if (currentDist > l3 + l4 || currentDist < Math.abs(l3 - l4)) {
-                    if (validAngles.length > 0) {
-                        theta = validAngles[Math.floor(validAngles.length / 2)]; // Teleport safely inside limits
-                    }
+                    if (validAngles.length > 0) theta = validAngles[Math.floor(validAngles.length / 2)];
                 }
 
-                // Lookahead Math
                 let nextTheta = theta + (speed * direction);
                 let nAx = l2 * Math.cos(nextTheta), nAy = l2 * Math.sin(nextTheta);
                 let nDist = Math.hypot(l1 - nAx, -nAy);
@@ -402,19 +409,19 @@
                     }
                     ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)';
                     ctx.setLineDash([5 / currentScale, 5 / currentScale]);
-                    ctx.lineWidth = 2 / currentScale; 
+                    ctx.lineWidth = 2.5 / currentScale; 
                     ctx.stroke();
                     ctx.setLineDash([]);
 
                     ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(px, py); ctx.closePath();
                     ctx.fillStyle = 'rgba(0, 255, 255, 0.3)'; ctx.fill();
 
-                    drawLine(0, 0, l1, 0, '#888', 6);
-                    drawLine(0, 0, ax, ay, '#FF5252', 6);
-                    drawLine(ax, ay, bx, by, '#4CAF50', 6);
-                    drawLine(l1, 0, bx, by, '#2196F3', 6);
+                    drawLine(0, 0, l1, 0, '#9E9E9E', 8); // Ground
+                    drawLine(0, 0, ax, ay, '#FF5252', 8); // Crank
+                    drawLine(ax, ay, bx, by, '#4CAF50', 8); // Coupler
+                    drawLine(l1, 0, bx, by, '#2196F3', 8); // Rocker
 
-                    drawJoint(0, 0, '#888'); drawJoint(l1, 0, '#888');
+                    drawJoint(0, 0, '#9E9E9E'); drawJoint(l1, 0, '#9E9E9E');
                     drawJoint(ax, ay, '#FF5252'); drawJoint(bx, by, '#2196F3');
                     drawJoint(px, py, '#00FFFF');
                 }
@@ -443,19 +450,19 @@
                     let bx = ax + l * Math.cos(th3);
 
                     ctx.setLineDash([5 / currentScale, 5 / currentScale]);
-                    drawLine(-r-l-5, e, r+l+5, e, '#555', 2);
+                    drawLine(-r-l-5, e, r+l+5, e, '#777', 3);
                     ctx.setLineDash([]);
 
-                    drawLine(0, 0, ax, ay, '#FF5252', 6);
-                    drawLine(ax, ay, bx, e, '#4CAF50', 6);
+                    drawLine(0, 0, ax, ay, '#FF5252', 8);
+                    drawLine(ax, ay, bx, e, '#4CAF50', 8);
 
-                    ctx.fillStyle = 'rgba(33, 150, 243, 0.6)';
-                    let blockW = 3, blockH = 2;
+                    ctx.fillStyle = 'rgba(33, 150, 243, 0.7)';
+                    let blockW = 4, blockH = 2.5;
                     ctx.fillRect(bx - blockW/2, e - blockH/2, blockW, blockH);
-                    ctx.strokeStyle = '#2196F3'; ctx.lineWidth = 2 / currentScale;
+                    ctx.strokeStyle = '#2196F3'; ctx.lineWidth = 2.5 / currentScale;
                     ctx.strokeRect(bx - blockW/2, e - blockH/2, blockW, blockH);
 
-                    drawJoint(0, 0, '#888'); drawJoint(ax, ay, '#FF5252'); drawJoint(bx, e, '#2196F3');
+                    drawJoint(0, 0, '#9E9E9E'); drawJoint(ax, ay, '#FF5252'); drawJoint(bx, e, '#2196F3');
                 }
             }
 
