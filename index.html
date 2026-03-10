@@ -69,7 +69,6 @@
             <hr>
 
             <div id="fourbar-controls">
-                
                 <div class="control-group" style="background: #333; padding: 15px; border-radius: 8px; border: 1px solid #555;">
                     <label style="color: #64B5F6; font-size: 18px; text-align: center;">🔄 Select Ground Link (Inversion)</label>
                     <div style="display: flex; justify-content: space-between; margin-top: 15px; font-size: 16px; font-weight: bold;">
@@ -93,9 +92,20 @@
             </div>
 
             <div id="slider-controls">
-                <div class="control-group"><label>Crank Radius (r)</label><div class="input-row"><input type="range" id="R" min="1" max="25" step="0.5" value="3" oninput="sync('R')"><input type="number" id="num-R" value="3" step="0.5" oninput="sync('num-R')"></div></div>
-                <div class="control-group"><label>Connecting Rod (L)</label><div class="input-row"><input type="range" id="L-sl" min="1" max="40" step="0.5" value="10" oninput="sync('L-sl')"><input type="number" id="num-L-sl" value="10" step="0.5" oninput="sync('num-L-sl')"></div></div>
-                <div class="control-group"><label>Track Offset (e)</label><div class="input-row"><input type="range" id="E" min="-20" max="20" step="0.5" value="0" oninput="sync('E')"><input type="number" id="num-E" value="0" step="0.5" oninput="sync('num-E')"></div></div>
+                <div class="control-group" style="background: #333; padding: 15px; border-radius: 8px; border: 1px solid #555;">
+                    <label style="color: #64B5F6; font-size: 18px; text-align: center;">🔄 Select Ground Link (Inversion)</label>
+                    <div style="display: flex; justify-content: space-between; margin-top: 15px; font-size: 16px; font-weight: bold;">
+                        <label style="color: #9E9E9E; cursor: pointer;"><input type="radio" name="sl-ground-link" value="1" checked onchange="calcTrace()"> Track</label>
+                        <label style="color: #FF5252; cursor: pointer;"><input type="radio" name="sl-ground-link" value="2" onchange="calcTrace()"> Crank</label>
+                        <label style="color: #4CAF50; cursor: pointer;"><input type="radio" name="sl-ground-link" value="3" onchange="calcTrace()"> Rod</label>
+                        <label style="color: #2196F3; cursor: pointer;"><input type="radio" name="sl-ground-link" value="4" onchange="calcTrace()"> Slider</label>
+                    </div>
+                    <div style="margin-top: 15px; font-size: 13px; color: #FFF; text-align: center; background: rgba(255,235,59,0.2); padding: 8px; border-radius: 4px; border: 1px solid #FFEB3B;">
+                        ⭐ The <b>Fixed Link</b> is highlighted with a <b>Yellow Glow</b> on the canvas.
+                    </div>
+                </div>
+                <div class="control-group"><label style="color: #FF5252;">Crank Radius (r)</label><div class="input-row"><input type="range" id="R" min="1" max="25" step="0.5" value="3" oninput="sync('R')"><input type="number" id="num-R" value="3" step="0.5" oninput="sync('num-R')"></div></div>
+                <div class="control-group"><label style="color: #4CAF50;">Connecting Rod (L)</label><div class="input-row"><input type="range" id="L-sl" min="1" max="40" step="0.5" value="10" oninput="sync('L-sl')"><input type="number" id="num-L-sl" value="10" step="0.5" oninput="sync('num-L-sl')"></div></div>
             </div>
 
             <hr>
@@ -158,7 +168,7 @@
             document.getElementById('mech-title').innerText = mech === 'fourbar' ? "Four-Bar Controls" : "Slider-Crank Controls";
             
             if (mech === 'fourbar') { sync('L1'); sync('L2'); sync('L3'); sync('L4'); }
-            else { sync('R'); sync('L-sl'); sync('E'); }
+            else { sync('R'); sync('L-sl'); }
             
             sync('zoom'); 
             theta = 0; tracePath = []; validAngles = []; isAnimating = true;
@@ -182,7 +192,6 @@
             if(baseId !== 'speed' && baseId !== 'zoom') calcTrace();
         }
 
-        // NEW MAPPER FUNCTION: Tracks Kinematics AND Original Color IDs
         function getMappedLengths() {
             let L1 = parseFloat(document.getElementById('L1').value);
             let L2 = parseFloat(document.getElementById('L2').value);
@@ -206,7 +215,7 @@
             let validCount = 0;
 
             if (currentMech === 'fourbar') {
-                let { l1, l2, l3, l4 } = getMappedLengths(); // Pull mapped lengths
+                let { l1, l2, l3, l4 } = getMappedLengths(); 
                 let cpL = parseFloat(document.getElementById('CpL').value);
                 let cpA = parseFloat(document.getElementById('CpA').value) * (Math.PI / 180);
 
@@ -231,18 +240,35 @@
             } else {
                 let r = parseFloat(document.getElementById('R').value);
                 let l = parseFloat(document.getElementById('L-sl').value);
-                let e = parseFloat(document.getElementById('E').value);
+                let inv = document.querySelector('input[name="sl-ground-link"]:checked').value;
                 
                 let statDiv = document.getElementById('status');
-                if (l < r + Math.abs(e)) {
-                    statDiv.innerText = "Error: Rod too short!"; statDiv.className = "status-bad";
+                if (l < r) {
+                    statDiv.innerText = "Error: Rod must be longer than Crank!"; statDiv.className = "status-bad";
                 } else {
                     statDiv.innerText = "Status: Valid Configuration"; statDiv.className = "status-good";
                 }
-                for (let t = 0; t < Math.PI * 2; t += 0.02) {
-                    let ay = r * Math.sin(t);
-                    if (l >= Math.abs(e - ay)) {
-                        tracePath.push(true);
+                
+                if (l >= r) {
+                    // Pre-calculate the trace path for the slider crank's rotating pin
+                    for (let t = 0; t <= Math.PI * 2; t += 0.02) {
+                        let px, py;
+                        if (inv === "1") {
+                            // Tracing Crank Pin
+                            px = r * Math.cos(t); py = r * Math.sin(t);
+                        } else if (inv === "2") {
+                            // Tracing Rod Pin around fixed Crank
+                            let d = r * Math.cos(t) + Math.sqrt(l*l - r*r * Math.pow(Math.sin(t), 2));
+                            px = d * Math.cos(t); py = d * Math.sin(t);
+                        } else if (inv === "3") {
+                            // Tracing Crank Center around fixed Rod
+                            px = r * Math.cos(t); py = r * Math.sin(t);
+                        } else if (inv === "4") {
+                            // Tracing Crank Pin around fixed Slider
+                            let d = -r * Math.cos(t) + Math.sqrt(l*l - r*r * Math.pow(Math.sin(t), 2));
+                            px = d + r * Math.cos(t); py = r * Math.sin(t);
+                        }
+                        tracePath.push({x: px, y: py});
                         validAngles.push(t);
                         validCount++;
                     }
@@ -285,7 +311,7 @@
             let dx = 0.05; 
 
             if (currentMech === 'fourbar') {
-                let { l1, l2, l3, l4 } = getMappedLengths(); // Pull mapped lengths
+                let { l1, l2, l3, l4 } = getMappedLengths(); 
                 let cpL = parseFloat(document.getElementById('CpL').value);
                 let cpA = parseFloat(document.getElementById('CpA').value) * (Math.PI / 180);
                 
@@ -322,38 +348,38 @@
             } else if (currentMech === 'slider') {
                 let r = parseFloat(document.getElementById('R').value);
                 let l = parseFloat(document.getElementById('L-sl').value);
-                let e = parseFloat(document.getElementById('E').value);
+                let inv = document.querySelector('input[name="sl-ground-link"]:checked').value;
 
                 document.getElementById('graph-trace').style.display = "none"; 
 
-                let xB_array = [];
+                let d_array = [];
                 for (let t = 0; t <= Math.PI * 2; t += dx) {
-                    let ay = r * Math.sin(t);
-                    if (l >= Math.abs(e - ay)) {
-                        let ax = r * Math.cos(t);
-                        let th3 = Math.asin((e - ay) / l);
-                        xB_array.push(ax + l * Math.cos(th3));
-                        xData.push(t * (180 / Math.PI));
+                    let d;
+                    if (inv === "4") {
+                        d = -r * Math.cos(t) + Math.sqrt(l*l - r*r * Math.pow(Math.sin(t), 2));
+                    } else {
+                        d = r * Math.cos(t) + Math.sqrt(l*l - r*r * Math.pow(Math.sin(t), 2));
                     }
+                    d_array.push(d);
+                    xData.push(t * (180 / Math.PI));
                 }
 
-                yVel = getDerivative(xB_array, dx);
+                yVel = getDerivative(d_array, dx);
                 yAcc = getDerivative(yVel, dx);
-                titleVel = "Slider Linear Velocity (v_B)";
-                titleAcc = "Slider Linear Acceleration (a_B)";
+                titleVel = "Relative Slider Linear Velocity";
+                titleAcc = "Relative Slider Linear Acceleration";
             }
 
             document.getElementById('plot-modal').style.display = 'flex';
             let traceVel = { x: xData, y: yVel, mode: 'lines', line: {color: 'blue', width: 2} };
-            let layoutVel = { title: titleVel, xaxis: {title: 'Crank Angle (deg)'}, margin: {t:40, b:40, l:40, r:20} };
+            let layoutVel = { title: titleVel, xaxis: {title: 'Crank Parameter (deg)'}, margin: {t:40, b:40, l:40, r:20} };
             Plotly.newPlot('graph-vel', [traceVel], layoutVel, {responsive: true});
 
             let traceAcc = { x: xData, y: yAcc, mode: 'lines', line: {color: 'red', width: 2} };
-            let layoutAcc = { title: titleAcc, xaxis: {title: 'Crank Angle (deg)'}, margin: {t:40, b:40, l:40, r:20} };
+            let layoutAcc = { title: titleAcc, xaxis: {title: 'Crank Parameter (deg)'}, margin: {t:40, b:40, l:40, r:20} };
             Plotly.newPlot('graph-acc', [traceAcc], layoutAcc, {responsive: true});
         }
 
-        // DRAWING HELPERS
         function drawLine(x1, y1, x2, y2, color, pixelWidth) {
             ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
             ctx.strokeStyle = color; ctx.lineWidth = pixelWidth / currentScale; 
@@ -387,8 +413,29 @@
             ctx.translate(canvas.width / 2 - (currentScale * 5), canvas.height / 2);
             ctx.scale(currentScale, -currentScale); 
 
+            // --- DRAW TRACE PATH FOR EITHER MECHANISM ---
+            if (tracePath.length > 0) {
+                ctx.beginPath();
+                for (let i = 0; i < tracePath.length; i++) {
+                    if (i === 0) {
+                        ctx.moveTo(tracePath[i].x, tracePath[i].y);
+                    } else {
+                        // Prevent jumping lines if distance is too big (mostly for rocker-crank transitions, but safe for all)
+                        let gap = Math.hypot(tracePath[i].x - tracePath[i-1].x, tracePath[i].y - tracePath[i-1].y);
+                        if (gap > 5) ctx.moveTo(tracePath[i].x, tracePath[i].y);
+                        else ctx.lineTo(tracePath[i].x, tracePath[i].y);
+                    }
+                }
+                ctx.closePath();
+                ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)';
+                ctx.setLineDash([5 / currentScale, 5 / currentScale]);
+                ctx.lineWidth = 2.5 / currentScale; 
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
             if (currentMech === 'fourbar') {
-                let { l1, l2, l3, l4, id1, id2, id3, id4, shortestId } = getMappedLengths(); // Pull mapped lengths AND IDs
+                let { l1, l2, l3, l4, id1, id2, id3, id4, shortestId } = getMappedLengths(); 
                 let cpL = parseFloat(document.getElementById('CpL').value);
                 let cpA = parseFloat(document.getElementById('CpA').value) * (Math.PI / 180);
 
@@ -417,44 +464,25 @@
                     let bx = ax + l3 * Math.cos(th3), by = ay + l3 * Math.sin(th3);
                     let px = ax + cpL * Math.cos(th3 + cpA), py = ay + cpL * Math.sin(th3 + cpA);
 
-                    ctx.beginPath();
-                    for (let i = 0; i < tracePath.length; i++) {
-                        if (i === 0) {
-                            ctx.moveTo(tracePath[i].x, tracePath[i].y);
-                        } else {
-                            let gap = Math.hypot(tracePath[i].x - tracePath[i-1].x, tracePath[i].y - tracePath[i-1].y);
-                            if (gap > l2 * 0.5) ctx.moveTo(tracePath[i].x, tracePath[i].y);
-                            else ctx.lineTo(tracePath[i].x, tracePath[i].y);
-                        }
-                    }
-                    ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)';
-                    ctx.setLineDash([5 / currentScale, 5 / currentScale]);
-                    ctx.lineWidth = 2.5 / currentScale; 
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-
                     ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(px, py); ctx.closePath();
                     ctx.fillStyle = 'rgba(0, 255, 255, 0.3)'; ctx.fill();
 
-                    // --- NEW COLOR AND GLOW LOGIC ---
                     const getColor = (id) => id === 1 ? '#9E9E9E' : id === 2 ? '#FF5252' : id === 3 ? '#4CAF50' : '#2196F3';
                     const drawSpecialLine = (x1, y1, x2, y2, id) => {
                         if (id === shortestId) {
                             ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
-                            ctx.strokeStyle = 'rgba(255, 235, 59, 0.6)'; // Yellow Glow
+                            ctx.strokeStyle = 'rgba(255, 235, 59, 0.6)'; 
                             ctx.lineWidth = 18 / currentScale; 
                             ctx.lineCap = 'round'; ctx.stroke();
                         }
                         drawLine(x1, y1, x2, y2, getColor(id), 8);
                     };
 
-                    // Draw Links based on their calculated Kinematic Roles, passing their Physical IDs
-                    drawSpecialLine(0, 0, l1, 0, id1);       // Ground Role
-                    drawSpecialLine(0, 0, ax, ay, id2);      // Crank Role
-                    drawSpecialLine(ax, ay, bx, by, id3);    // Coupler Role
-                    drawSpecialLine(l1, 0, bx, by, id4);     // Rocker Role
+                    drawSpecialLine(0, 0, l1, 0, id1);       
+                    drawSpecialLine(0, 0, ax, ay, id2);      
+                    drawSpecialLine(ax, ay, bx, by, id3);    
+                    drawSpecialLine(l1, 0, bx, by, id4);     
 
-                    // Draw Joints (matching the color of the link attached to them)
                     drawJoint(0, 0, getColor(id1)); drawJoint(l1, 0, getColor(id1));
                     drawJoint(ax, ay, getColor(id2)); drawJoint(bx, by, getColor(id4));
                     drawJoint(px, py, '#00FFFF');
@@ -463,41 +491,81 @@
             } else if (currentMech === 'slider') {
                 let r = parseFloat(document.getElementById('R').value);
                 let l = parseFloat(document.getElementById('L-sl').value);
-                let e = parseFloat(document.getElementById('E').value);
+                let inv = document.querySelector('input[name="sl-ground-link"]:checked').value;
 
-                let currentY = r * Math.sin(theta);
-                if (l < Math.abs(e - currentY)) {
-                    if (validAngles.length > 0) theta = validAngles[Math.floor(validAngles.length / 2)];
+                theta = theta + (speed * direction);
+
+                let p12, p23, p34, trackAngle;
+
+                if (inv === "1") {
+                    p12 = {x: 0, y: 0};
+                    p23 = {x: r * Math.cos(theta), y: r * Math.sin(theta)};
+                    let d = r * Math.cos(theta) + Math.sqrt(l*l - r*r * Math.pow(Math.sin(theta), 2));
+                    p34 = {x: d, y: 0};
+                    trackAngle = 0;
+                } else if (inv === "2") {
+                    p12 = {x: 0, y: 0};
+                    p23 = {x: r, y: 0};
+                    let d = r * Math.cos(theta) + Math.sqrt(l*l - r*r * Math.pow(Math.sin(theta), 2));
+                    p34 = {x: d * Math.cos(theta), y: d * Math.sin(theta)};
+                    trackAngle = theta;
+                } else if (inv === "3") {
+                    p23 = {x: 0, y: 0};
+                    p34 = {x: l, y: 0};
+                    p12 = {x: r * Math.cos(theta), y: r * Math.sin(theta)};
+                    trackAngle = Math.atan2(p34.y - p12.y, p34.x - p12.x);
+                } else if (inv === "4") {
+                    p34 = {x: 0, y: 0};
+                    let d = -r * Math.cos(theta) + Math.sqrt(l*l - r*r * Math.pow(Math.sin(theta), 2));
+                    p12 = {x: d, y: 0};
+                    p23 = {x: d + r * Math.cos(theta), y: r * Math.sin(theta)};
+                    trackAngle = 0;
                 }
 
-                let nextTheta = theta + (speed * direction);
-                let nAy = r * Math.sin(nextTheta);
-                if (l < Math.abs(e - nAy)) {
-                    direction *= -1;
-                    nextTheta = theta + (speed * direction);
+                const drawSliderLink = (x1, y1, x2, y2, color, isFixed) => {
+                    if (isFixed) {
+                        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+                        ctx.strokeStyle = 'rgba(255, 235, 59, 0.6)'; 
+                        ctx.lineWidth = 18 / currentScale; 
+                        ctx.lineCap = 'round'; ctx.stroke();
+                    }
+                    drawLine(x1, y1, x2, y2, color, 8);
+                };
+
+                let tL_start = - (l + r) * 1.5;
+                let tL_end = (l + r) * 1.5;
+                if (inv === "3") {
+                    tL_start = -2; 
+                    tL_end = Math.hypot(p34.x - p12.x, p34.y - p12.y) + r + 2; 
                 }
-                theta = nextTheta;
-                let ax = r * Math.cos(theta), ay = r * Math.sin(theta);
+                let tx1 = p12.x + tL_start * Math.cos(trackAngle);
+                let ty1 = p12.y + tL_start * Math.sin(trackAngle);
+                let tx2 = p12.x + tL_end * Math.cos(trackAngle);
+                let ty2 = p12.y + tL_end * Math.sin(trackAngle);
 
-                if (l >= Math.abs(e - ay)) {
-                    let th3 = Math.asin((e - ay) / l);
-                    let bx = ax + l * Math.cos(th3);
+                drawSliderLink(tx1, ty1, tx2, ty2, '#9E9E9E', inv === "1"); 
+                drawSliderLink(p12.x, p12.y, p23.x, p23.y, '#FF5252', inv === "2"); 
+                drawSliderLink(p23.x, p23.y, p34.x, p34.y, '#4CAF50', inv === "3"); 
 
-                    ctx.setLineDash([5 / currentScale, 5 / currentScale]);
-                    drawLine(-r-l-5, e, r+l+5, e, '#777', 3);
-                    ctx.setLineDash([]);
-
-                    drawLine(0, 0, ax, ay, '#FF5252', 8);
-                    drawLine(ax, ay, bx, e, '#4CAF50', 8);
-
-                    ctx.fillStyle = 'rgba(33, 150, 243, 0.7)';
-                    let blockW = 4, blockH = 2.5;
-                    ctx.fillRect(bx - blockW/2, e - blockH/2, blockW, blockH);
-                    ctx.strokeStyle = '#2196F3'; ctx.lineWidth = 2.5 / currentScale;
-                    ctx.strokeRect(bx - blockW/2, e - blockH/2, blockW, blockH);
-
-                    drawJoint(0, 0, '#9E9E9E'); drawJoint(ax, ay, '#FF5252'); drawJoint(bx, e, '#2196F3');
+                ctx.save();
+                ctx.translate(p34.x, p34.y);
+                ctx.rotate(trackAngle);
+                let blockW = 4, blockH = 2.5;
+                if (inv === "4") {
+                    let glow = 6 / currentScale;
+                    ctx.fillStyle = 'rgba(255, 235, 59, 0.6)';
+                    ctx.fillRect(-blockW/2 - glow/2, -blockH/2 - glow/2, blockW + glow, blockH + glow);
                 }
+                ctx.fillStyle = 'rgba(33, 150, 243, 0.7)';
+                ctx.fillRect(-blockW/2, -blockH/2, blockW, blockH);
+                ctx.strokeStyle = '#2196F3'; 
+                ctx.lineWidth = 2.5 / currentScale;
+                ctx.strokeRect(-blockW/2, -blockH/2, blockW, blockH);
+                ctx.restore();
+
+                drawJoint(p12.x, p12.y, '#9E9E9E'); 
+                drawJoint(p23.x, p23.y, '#FF5252'); 
+                drawJoint(p34.x, p34.y, '#4CAF50'); 
             }
 
             ctx.restore();
