@@ -369,7 +369,20 @@
             
             let headlen = 12; 
             let dx = px2 - px1, dy = py2 - py1;
-            if(Math.hypot(dx,dy) < 2) return; 
+            if(Math.hypot(dx,dy) < 2){
+                ctx.beginPath();
+                ctx.arc(px1, py1, 3, 0, Math.PI*2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.font = "bold 13px Arial";
+                let tw = ctx.measureText(label).width;
+                let tx = px1 + 6, ty = py1 + 4;
+                ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+                ctx.fillRect(tx - 3, ty - 12, tw + 6, 16);
+                ctx.fillStyle = "#222";
+                ctx.fillText(label, tx, ty);
+                return;
+            }
             let angle = Math.atan2(dy, dx);
             
             ctx.beginPath(); ctx.moveTo(px1, py1); ctx.lineTo(px2, py2);
