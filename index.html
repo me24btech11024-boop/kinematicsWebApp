@@ -3,112 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Universal Kinematics Dashboard</title>
+    <title>Kinematics Dashboard</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; background-color: #222; color: #fff; }
-        
         #home-screen { width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #1a1a1a; position: absolute; top: 0; left: 0; z-index: 100; transition: 0.3s; }
         #home-screen h1 { font-size: 42px; color: #4CAF50; margin-bottom: 10px; }
-        #home-screen p { font-size: 22px; color: #aaa; margin-bottom: 40px; }
-        .home-btn { background-color: #007BFF; color: white; border: none; padding: 25px 50px; font-size: 22px; margin: 15px; border-radius: 12px; cursor: pointer; transition: 0.2s; width: 400px; font-weight: bold; }
+        .home-btn { background-color: #007BFF; color: white; border: none; padding: 25px 50px; font-size: 22px; margin: 15px; border-radius: 12px; cursor: pointer; width: 400px; font-weight: bold; }
         .home-btn.green { background-color: #28A745; }
-        .home-btn:hover { filter: brightness(1.2); transform: scale(1.05); }
-
-        #app-screen { width: 100%; height: 100%; display: none; flex-direction: row; }
+        .home-btn:hover { filter: brightness(1.2); }
         
-        #sidebar { width: 450px; background-color: #2a2a2a; padding: 30px; overflow-y: auto; box-shadow: 5px 0 15px rgba(0,0,0,0.8); z-index: 10; }
+        #app-screen { width: 100%; height: 100%; display: none; flex-direction: row; }
+        #sidebar { width: 420px; background-color: #2a2a2a; padding: 25px; overflow-y: auto; box-shadow: 5px 0 15px rgba(0,0,0,0.8); z-index: 10; }
         #main { flex-grow: 1; position: relative; display: flex; flex-direction: column; }
         canvas { background-color: #111; width: 100%; height: 100%; display: block; }
         
-        h2 { margin-top: 20px; color: #4CAF50; border-bottom: 2px solid #555; padding-bottom: 10px; font-size: 28px; }
-        .back-btn { background: none; border: none; color: #64B5F6; font-size: 18px; cursor: pointer; padding: 0; font-weight: bold; margin-bottom: 15px; }
-        .back-btn:hover { color: #bbdefb; text-decoration: underline; }
+        h2 { margin-top: 10px; color: #4CAF50; border-bottom: 2px solid #555; padding-bottom: 10px; }
+        .back-btn { background: none; border: none; color: #64B5F6; font-size: 16px; cursor: pointer; padding: 0; font-weight: bold; margin-bottom: 15px; }
         
         .control-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-size: 15px; color: #ddd; font-weight: bold; }
-        .input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 5px;}
-        .input-row input[type="range"] { flex-grow: 1; cursor: pointer; height: 8px; }
-        .input-row input[type="number"] { width: 70px; background: #444; color: white; border: 1px solid #777; border-radius: 5px; padding: 6px; font-size: 14px; font-weight: bold; text-align: center; }
+        label { display: block; margin-bottom: 5px; font-size: 14px; color: #ddd; font-weight: bold; }
+        .input-row { display: flex; align-items: center; gap: 10px; }
+        .input-row input[type="range"] { flex-grow: 1; cursor: pointer; }
+        .input-row input[type="number"] { width: 70px; background: #444; color: white; border: 1px solid #777; border-radius: 5px; padding: 5px; font-weight: bold; text-align: center; }
         
         #fourbar-controls, #slider-controls { display: none; }
         #fourbar-controls.active, #slider-controls.active { display: block; }
-        hr { border-color: #555; margin: 20px 0; }
+        hr { border-color: #555; margin: 15px 0; }
         
-        #status { font-size: 16px; font-weight: bold; margin-top: 10px; padding: 12px; border-radius: 8px; text-align: center; }
-        .status-good { background-color: rgba(76, 175, 80, 0.2); color: #4CAF50; border: 2px solid #4CAF50; }
-        .status-warn { background-color: rgba(255, 193, 7, 0.2); color: #FFC107; border: 2px solid #FFC107; }
-        .status-bad { background-color: rgba(244, 67, 54, 0.2); color: #F44336; border: 2px solid #F44336; }
+        #status { font-size: 16px; font-weight: bold; padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 10px;}
+        .status-good { background-color: rgba(76, 175, 80, 0.2); color: #4CAF50; border: 1px solid #4CAF50; }
+        .status-warn { background-color: rgba(255, 193, 7, 0.2); color: #FFC107; border: 1px solid #FFC107; }
+        .status-bad { background-color: rgba(244, 67, 54, 0.2); color: #F44336; border: 1px solid #F44336; }
 
-        .plot-btn { width: 100%; padding: 15px; background-color: #9C27B0; color: white; border: none; font-size: 16px; cursor: pointer; border-radius: 8px; margin-top: 10px; font-weight: bold; transition: 0.2s; }
-        .plot-btn:hover { background-color: #AB47BC; transform: translateY(-2px); }
-        .vec-btn { background-color: #FF9800; }
-        .vec-btn:hover { background-color: #FFA726; }
+        .plot-btn { width: 100%; padding: 12px; background-color: #9C27B0; color: white; border: none; font-size: 16px; cursor: pointer; border-radius: 8px; margin-top: 10px; font-weight: bold; }
+        .vec-btn { background-color: #FF9800; margin-top:0;}
 
         .modal { display: none; position: absolute; top: 5%; left: 5%; width: 90%; height: 90%; background: #f4f4f4; z-index: 50; border-radius: 12px; box-shadow: 0 0 30px rgba(0,0,0,0.9); flex-direction: column; overflow: hidden; }
-        .modal-header { padding: 15px 20px; background: #222; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #9C27B0; }
-        .modal-header h3 { margin: 0; color: white; font-size: 22px; }
-        .close-btn { background: #F44336; border: none; color: white; padding: 8px 15px; font-size: 14px; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        .modal-header { padding: 15px; background: #222; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #9C27B0; }
+        .modal-header h3 { margin: 0; color: white; }
+        .close-btn { background: #F44336; border: none; color: white; padding: 8px 15px; cursor: pointer; border-radius: 5px; font-weight: bold; }
         
-        .graphs-container { display: flex; flex-direction: column; overflow-y: auto; height: 100%; width: 100%; padding: 20px; box-sizing: border-box; background: #e0e0e0;}
-        .graph-box { width: 100%; height: 350px; margin-bottom: 20px; flex-shrink: 0; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); padding: 10px;}
-        
-        .vector-canvases { display: flex; flex-direction: column; overflow-y: auto; height: 100%; width: 100%; padding: 20px; box-sizing: border-box; background: #e0e0e0; }
-        .vector-pane { width: 100%; height: 500px; margin-bottom: 30px; flex-shrink: 0; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); padding: 15px; display: flex; flex-direction: column; position: relative;}
-        .vector-pane h4 { text-align: center; color: #333; margin: 0 0 10px 0; font-size: 20px; border-bottom: 2px solid #ddd; padding-bottom: 10px;}
+        .graphs-container, .vector-canvases { display: flex; flex-direction: column; overflow-y: auto; height: 100%; width: 100%; padding: 20px; box-sizing: border-box; background: #e0e0e0;}
+        .graph-box, .vector-pane { width: 100%; height: 450px; margin-bottom: 20px; flex-shrink: 0; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); padding: 15px; position: relative; display: flex; flex-direction: column;}
+        .vector-pane h4 { text-align: center; color: #333; margin: 0 0 10px 0; border-bottom: 2px solid #ddd; padding-bottom: 10px;}
         .vector-pane canvas { background-color: #fff; width: 100%; flex-grow: 1; border: 1px solid #ccc; border-radius: 4px;}
-        .legend { position: absolute; top: 60px; right: 30px; background: rgba(255,255,255,0.95); border: 1px solid #aaa; padding: 10px; font-size: 13px; color: #333; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); border-radius: 5px; z-index: 10; }
     </style>
 </head>
 <body>
 
     <div id="home-screen">
-        <h1>⚙️ Universal Kinematics Dashboard</h1>
-        <p>Select a mechanism to simulate:</p>
+        <h1>⚙️ Kinematics Dashboard</h1>
         <button class="home-btn" onclick="openMech('fourbar')">Four-Bar Mechanism</button>
         <button class="home-btn green" onclick="openMech('slider')">Slider-Crank Mechanism</button>
     </div>
 
     <div id="app-screen">
         <div id="sidebar">
-            <button class="back-btn" onclick="goHome()">⬅️ Back to Main Menu</button>
-            <h2 id="mech-title">Controls</h2>
-            
+            <button class="back-btn" onclick="goHome()">⬅️ Main Menu</button>
             <div id="status" class="status-good">Status: Grashof</div>
-            <hr>
-
+            
             <div id="fourbar-controls">
-                <div class="control-group" style="background: #333; padding: 15px; border-radius: 8px; border: 1px solid #555;">
-                    <label style="color: #64B5F6; text-align: center;">🔄 Select Ground Link (Inversion)</label>
-                    <div style="display: flex; justify-content: space-between; margin-top: 10px;">
-                        <label style="color: #9E9E9E; cursor: pointer;"><input type="radio" name="ground-link" value="1" checked onchange="calcTrace()"> L1</label>
-                        <label style="color: #FF5252; cursor: pointer;"><input type="radio" name="ground-link" value="2" onchange="calcTrace()"> L2</label>
-                        <label style="color: #4CAF50; cursor: pointer;"><input type="radio" name="ground-link" value="3" onchange="calcTrace()"> L3</label>
-                        <label style="color: #2196F3; cursor: pointer;"><input type="radio" name="ground-link" value="4" onchange="calcTrace()"> L4</label>
+                <div class="control-group" style="background: #333; padding: 10px; border-radius: 8px;">
+                    <label style="color: #64B5F6; text-align: center;">Ground Link</label>
+                    <div style="display: flex; justify-content: space-around;">
+                        <label><input type="radio" name="ground-link" value="1" checked onchange="calcTrace()"> L1</label>
+                        <label><input type="radio" name="ground-link" value="2" onchange="calcTrace()"> L2</label>
+                        <label><input type="radio" name="ground-link" value="3" onchange="calcTrace()"> L3</label>
+                        <label><input type="radio" name="ground-link" value="4" onchange="calcTrace()"> L4</label>
+                    </div>
+                </div>
+                <div class="control-group" style="background: #333; padding: 10px; border-radius: 8px; margin-top: 10px;">
+                    <label style="color: #E0E0E0; text-align: center;">🔄 Assembly Mode (Coupler Curve)</label>
+                    <div style="display: flex; justify-content: space-around;">
+                        <label><input type="radio" name="assembly-mode" value="1" checked onchange="calcTrace()"> Open (Cyan)</label>
+                        <label><input type="radio" name="assembly-mode" value="-1" onchange="calcTrace()"> Crossed (Magenta)</label>
                     </div>
                 </div>
 
-                <div class="control-group"><label style="color: #9E9E9E;">L1 (Grey)</label><div class="input-row"><input type="range" id="L1" min="1" max="25" step="0.5" value="8" oninput="sync('L1')"><input type="number" id="num-L1" value="8" step="0.5" oninput="sync('num-L1')"></div></div>
-                <div class="control-group"><label style="color: #FF5252;">L2 (Red - Crank/Driver)</label><div class="input-row"><input type="range" id="L2" min="1" max="25" step="0.5" value="3" oninput="sync('L2')"><input type="number" id="num-L2" value="3" step="0.5" oninput="sync('num-L2')"></div></div>
-                <div class="control-group"><label style="color: #4CAF50;">L3 (Green - Coupler)</label><div class="input-row"><input type="range" id="L3" min="1" max="25" step="0.5" value="7" oninput="sync('L3')"><input type="number" id="num-L3" value="7" step="0.5" oninput="sync('num-L3')"></div></div>
-                <div class="control-group"><label style="color: #2196F3;">L4 (Blue - Rocker)</label><div class="input-row"><input type="range" id="L4" min="1" max="25" step="0.5" value="6" oninput="sync('L4')"><input type="number" id="num-L4" value="6" step="0.5" oninput="sync('num-L4')"></div></div>
-                <hr>
-                <div class="control-group"><label>Coupler Ext Length</label><div class="input-row"><input type="range" id="CpL" min="0" max="25" step="0.5" value="4" oninput="sync('CpL')"><input type="number" id="num-CpL" value="4" step="0.5" oninput="sync('num-CpL')"></div></div>
-                <div class="control-group"><label>Coupler Angle (deg)</label><div class="input-row"><input type="range" id="CpA" min="-180" max="180" step="5" value="45" oninput="sync('CpA')"><input type="number" id="num-CpA" value="45" step="5" oninput="sync('num-CpA')"></div></div>
+                <div class="control-group"><label>L1 (Grey)</label><div class="input-row"><input type="range" id="L1" min="1" max="100" step="0.5" value="8" oninput="sync('L1')"><input type="number" id="num-L1" value="8" oninput="sync('num-L1')"></div></div>
+                <div class="control-group"><label>L2 (Red - Crank)</label><div class="input-row"><input type="range" id="L2" min="1" max="100" step="0.5" value="3" oninput="sync('L2')"><input type="number" id="num-L2" value="3" oninput="sync('num-L2')"></div></div>
+                <div class="control-group"><label>L3 (Green - Coupler)</label><div class="input-row"><input type="range" id="L3" min="1" max="100" step="0.5" value="7" oninput="sync('L3')"><input type="number" id="num-L3" value="7" oninput="sync('num-L3')"></div></div>
+                <div class="control-group"><label>L4 (Blue - Rocker)</label><div class="input-row"><input type="range" id="L4" min="1" max="100" step="0.5" value="6" oninput="sync('L4')"><input type="number" id="num-L4" value="6" oninput="sync('num-L4')"></div></div>
+                <div class="control-group"><label>Coupler Ext Length</label><div class="input-row"><input type="range" id="CpL" min="0" max="100" step="0.5" value="4" oninput="sync('CpL')"><input type="number" id="num-CpL" value="4" oninput="sync('num-CpL')"></div></div>
+                <div class="control-group"><label>Coupler Angle (deg)</label><div class="input-row"><input type="range" id="CpA" min="-180" max="180" step="5" value="45" oninput="sync('CpA')"><input type="number" id="num-CpA" value="45" oninput="sync('num-CpA')"></div></div>
             </div>
 
             <div id="slider-controls">
-                <div class="control-group" style="background: #333; padding: 15px; border-radius: 8px; border: 1px solid #555;">
-                    <label style="color: #64B5F6; text-align: center;">🔄 Select Ground Link (Inversion)</label>
-                    <div style="display: flex; justify-content: space-between; margin-top: 10px;">
-                        <label style="color: #9E9E9E; cursor: pointer;"><input type="radio" name="sl-ground-link" value="1" checked onchange="calcTrace()"> Track</label>
-                        <label style="color: #FF5252; cursor: pointer;"><input type="radio" name="sl-ground-link" value="2" onchange="calcTrace()"> Crank</label>
-                        <label style="color: #4CAF50; cursor: pointer;"><input type="radio" name="sl-ground-link" value="3" onchange="calcTrace()"> Rod</label>
-                        <label style="color: #2196F3; cursor: pointer;"><input type="radio" name="sl-ground-link" value="4" onchange="calcTrace()"> Slider</label>
+                <div class="control-group" style="background: #333; padding: 10px; border-radius: 8px;">
+                    <label style="color: #64B5F6; text-align: center;">Ground Link</label>
+                    <div style="display: flex; justify-content: space-around;">
+                        <label><input type="radio" name="sl-ground-link" value="1" checked onchange="calcTrace()"> Track</label>
+                        <label><input type="radio" name="sl-ground-link" value="2" onchange="calcTrace()"> Crank</label>
+                        <label><input type="radio" name="sl-ground-link" value="3" onchange="calcTrace()"> Rod</label>
+                        <label><input type="radio" name="sl-ground-link" value="4" onchange="calcTrace()"> Slider</label>
                     </div>
                 </div>
-                <div class="control-group"><label style="color: #FF5252;">Crank Radius (r)</label><div class="input-row"><input type="range" id="R" min="1" max="25" step="0.5" value="3" oninput="sync('R')"><input type="number" id="num-R" value="3" step="0.5" oninput="sync('num-R')"></div></div>
-                <div class="control-group"><label style="color: #4CAF50;">Connecting Rod (L)</label><div class="input-row"><input type="range" id="L-sl" min="1" max="40" step="0.5" value="10" oninput="sync('L-sl')"><input type="number" id="num-L-sl" value="10" step="0.5" oninput="sync('num-L-sl')"></div></div>
+                <div class="control-group"><label>Crank Radius (r)</label><div class="input-row"><input type="range" id="R" min="1" max="100" step="0.5" value="3" oninput="sync('R')"><input type="number" id="num-R" value="3" oninput="sync('num-R')"></div></div>
+                <div class="control-group"><label>Connecting Rod (L)</label><div class="input-row"><input type="range" id="L-sl" min="1" max="100" step="0.5" value="10" oninput="sync('L-sl')"><input type="number" id="num-L-sl" value="10" oninput="sync('num-L-sl')"></div></div>
             </div>
 
             <hr>
@@ -120,10 +112,8 @@
                 <button class="plot-btn vec-btn" onclick="openVectorModal()">Show Vector Diagrams</button>
             </div>
 
-            <div class="control-group">
-                <label>Animation Speed</label>
-                <div class="input-row"><input type="range" id="speed" min="0" max="10" step="0.5" value="3" oninput="sync('speed')"><input type="number" id="num-speed" value="3" step="0.5" oninput="sync('num-speed')"></div>
-            </div>
+            <div class="control-group"><label>Animation Speed</label><div class="input-row"><input type="range" id="speed" min="0" max="10" step="0.5" value="3" oninput="sync('speed')"><input type="number" id="num-speed" value="3" oninput="sync('num-speed')"></div></div>
+            <div class="control-group"><label>🔍 Camera Zoom (%)</label><div class="input-row"><input type="range" id="zoom" min="20" max="300" step="5" value="100" oninput="sync('zoom')"><input type="number" id="num-zoom" value="100" oninput="sync('num-zoom')"></div></div>
 
             <button class="plot-btn" onclick="generatePlots()">📊 Plot Kinematic Graphs</button>
         </div>
@@ -149,46 +139,24 @@
                     <button class="close-btn" onclick="document.getElementById('vector-modal').style.display='none'">Close X</button>
                 </div>
                 <div class="vector-canvases">
-                    <div class="vector-pane">
-                        <h4>Position Diagram</h4>
-                        <canvas id="posCanvas"></canvas>
-                    </div>
-                    <div class="vector-pane">
-                        <h4>Velocity Polygon</h4>
-                        <canvas id="velCanvas"></canvas>
-                    </div>
-                    <div class="vector-pane">
-                        <h4>Acceleration Polygon</h4>
-                        <div class="legend">
-                            <b>Legend:</b><br>
-                            - - - Normal Comp (a^n)<br>
-                            ······· Tangential Comp (a^t)<br>
-                            ▬▬ Total Vector
-                        </div>
-                        <canvas id="accCanvas"></canvas>
-                    </div>
+                    <div class="vector-pane"><h4>Position Diagram</h4><canvas id="posCanvas"></canvas></div>
+                    <div class="vector-pane"><h4>Velocity Polygon</h4><canvas id="velCanvas"></canvas></div>
+                    <div class="vector-pane"><h4>Acceleration Polygon</h4><canvas id="accCanvas"></canvas></div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        const canvas = document.getElementById('simCanvas');
-        const ctx = canvas.getContext('2d');
-        const posCanvas = document.getElementById('posCanvas');
-        const posCtx = posCanvas.getContext('2d');
-        const velCanvas = document.getElementById('velCanvas');
-        const velCtx = velCanvas.getContext('2d');
-        const accCanvas = document.getElementById('accCanvas');
-        const accCtx = accCanvas.getContext('2d');
+        const canvas = document.getElementById('simCanvas'), ctx = canvas.getContext('2d');
+        const posCanvas = document.getElementById('posCanvas'), posCtx = posCanvas.getContext('2d');
+        const velCanvas = document.getElementById('velCanvas'), velCtx = velCanvas.getContext('2d');
+        const accCanvas = document.getElementById('accCanvas'), accCtx = accCanvas.getContext('2d');
         
         let currentScale = 1; 
         let currentMech = 'fourbar';
-        let theta = 0; 
-        let direction = 1; 
-        let tracePath = []; 
-        let validAngles = []; 
-        let isAnimating = false; 
+        let theta = 0, direction = 1, isAnimating = false; 
+        let tracePath = [], tracePathAlt = [], validAngles = []; 
 
         function resize() { 
             canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; 
@@ -205,13 +173,8 @@
             currentMech = mech;
             document.getElementById('fourbar-controls').classList.toggle('active', mech === 'fourbar');
             document.getElementById('slider-controls').classList.toggle('active', mech === 'slider');
-            document.getElementById('mech-title').innerText = mech === 'fourbar' ? "Four-Bar Controls" : "Slider-Crank Controls";
-            
-            if (mech === 'fourbar') { sync('L1'); sync('L2'); sync('L3'); sync('L4'); }
-            else { sync('R'); sync('L-sl'); }
-            
-            theta = 0; tracePath = []; validAngles = []; isAnimating = true;
-            setTimeout(resize, 100); 
+            if (mech === 'fourbar') { sync('L1'); sync('L2'); sync('L3'); sync('L4'); } else { sync('R'); sync('L-sl'); }
+            theta = 0; isAnimating = true; setTimeout(resize, 50); 
         }
 
         function goHome() {
@@ -222,550 +185,493 @@
             isAnimating = false; 
         }
 
-        function sync(sourceId) {
-            let baseId = sourceId.replace('num-', '');
-            let slider = document.getElementById(baseId);
-            let numBox = document.getElementById('num-' + baseId);
-            if (sourceId.startsWith('num-')) slider.value = numBox.value;
-            else numBox.value = slider.value;
-            if(baseId !== 'speed') calcTrace();
+        function sync(s) {
+            let b = s.replace('num-', ''), sl = document.getElementById(b), nb = document.getElementById('num-'+b);
+            if (s.startsWith('num-')) sl.value = nb.value; else nb.value = sl.value;
+            if(b !== 'speed' && b !== 'zoom') calcTrace();
         }
 
         function getMappedLengths() {
-            let L1 = parseFloat(document.getElementById('L1').value);
-            let L2 = parseFloat(document.getElementById('L2').value);
-            let L3 = parseFloat(document.getElementById('L3').value);
-            let L4 = parseFloat(document.getElementById('L4').value);
-            let minVal = Math.min(L1, L2, L3, L4);
-            let shortestId = (minVal === L1) ? 1 : (minVal === L2) ? 2 : (minVal === L3) ? 3 : 4;
-            let ground = document.querySelector('input[name="ground-link"]:checked').value;
+            let L1 = parseFloat(document.getElementById('L1').value), L2 = parseFloat(document.getElementById('L2').value);
+            let L3 = parseFloat(document.getElementById('L3').value), L4 = parseFloat(document.getElementById('L4').value);
+            let g = document.querySelector('input[name="ground-link"]:checked').value;
+            if (g === "1") return { l1: L1, l2: L2, l3: L3, l4: L4, id1: 1, id2: 2, id3: 3, id4: 4 };
+            if (g === "2") return { l1: L2, l2: L3, l3: L4, l4: L1, id1: 2, id2: 3, id3: 4, id4: 1 };
+            if (g === "3") return { l1: L3, l2: L4, l3: L1, l4: L2, id1: 3, id2: 4, id3: 1, id4: 2 };
+            return { l1: L4, l2: L1, l3: L2, l4: L3, id1: 4, id2: 1, id3: 2, id4: 3 };
+        }
+
+        // Extracts all specific angles + exact boundary limit angles so curves perfectly close
+        function getEvaluationAngles(l1, l2, l3, l4) {
+            let angles = [];
+            for (let t = 0; t <= Math.PI * 2; t += 0.02) angles.push(t);
             
-            if (ground === "1") return { l1: L1, l2: L2, l3: L3, l4: L4, id1: 1, id2: 2, id3: 3, id4: 4, shortestId };
-            if (ground === "2") return { l1: L2, l2: L3, l3: L4, l4: L1, id1: 2, id2: 3, id3: 4, id4: 1, shortestId };
-            if (ground === "3") return { l1: L3, l2: L4, l3: L1, l4: L2, id1: 3, id2: 4, id3: 1, id4: 2, shortestId };
-            if (ground === "4") return { l1: L4, l2: L1, l3: L2, l4: L3, id1: 4, id2: 1, id3: 2, id4: 3, shortestId };
+            // Analytic boundary root finding
+            let d_max = l3 + l4, d_min = Math.abs(l3 - l4);
+            let cos_max = (l1*l1 + l2*l2 - d_max*d_max) / (2*l1*l2);
+            let cos_min = (l1*l1 + l2*l2 - d_min*d_min) / (2*l1*l2);
+            
+            if (cos_max >= -1 && cos_max <= 1) { let a = Math.acos(cos_max); angles.push(a, -a, a+Math.PI*2, -a+Math.PI*2); }
+            if (cos_min >= -1 && cos_min <= 1) { let a = Math.acos(cos_min); angles.push(a, -a, a+Math.PI*2, -a+Math.PI*2); }
+            
+            return angles.map(a => (a + Math.PI*4) % (Math.PI*2)).sort((a,b) => a-b);
         }
 
         function calcTrace() {
-            tracePath = []; validAngles = []; 
-            let validCount = 0;
-            let statDiv = document.getElementById('status');
+            tracePath = []; tracePathAlt = []; validAngles = []; let vc = 0;
+            let stat = document.getElementById('status');
 
             if (currentMech === 'fourbar') {
                 let { l1, l2, l3, l4 } = getMappedLengths(); 
-                let cpL = parseFloat(document.getElementById('CpL').value);
-                let cpA = parseFloat(document.getElementById('CpA').value) * (Math.PI / 180);
-
-                let links = [l1, l2, l3, l4].sort((a, b) => a - b);
-                let S = links[0], L = links[3], P = links[1], Q = links[2];
+                let cpL = parseFloat(document.getElementById('CpL').value), cpA = parseFloat(document.getElementById('CpA').value) * Math.PI / 180;
+                let L = [l1, l2, l3, l4].sort((a,b)=>a-b);
                 
-                if (L > S + P + Q) { statDiv.innerText = "Status: Geometry Error"; statDiv.className = "status-bad"; } 
-                else if (Math.abs(L - (S + P + Q)) < 0.01) { statDiv.innerText = "Status: Boundary Condition (L = S + P + Q)"; statDiv.className = "status-warn"; } 
-                else if (Math.abs((S + L) - (P + Q)) < 0.01) { statDiv.innerText = "Status: Special Grashof (Change Point)"; statDiv.className = "status-warn"; } 
-                else if (S + L < P + Q) { statDiv.innerText = "Status: Grashof (Continuous)"; statDiv.className = "status-good"; } 
-                else { statDiv.innerText = "Status: Non-Grashof (Rocker)"; statDiv.className = "status-bad"; }
+                if (L[3] > L[0]+L[1]+L[2]) { stat.innerText = "Error: Geometry Broken (L > S+P+Q)"; stat.className = "status-bad"; } 
+                else if (Math.abs(L[3] - (L[0]+L[1]+L[2])) < 1e-4) { stat.innerText = "Boundary Condition (L = S+P+Q). Mechanism Folded."; stat.className = "status-warn"; } 
+                else if (Math.abs((L[0]+L[3]) - (L[1]+L[2])) < 1e-4) { stat.innerText = "Special Grashof (Change Point). S+L = P+Q."; stat.className = "status-warn"; } 
+                else if (L[0]+L[3] < L[1]+L[2]) { stat.innerText = "Status: Grashof (Continuous)"; stat.className = "status-good"; } 
+                else { stat.innerText = "Status: Non-Grashof (Rocker)"; stat.className = "status-bad"; }
 
-                for (let t = 0; t < Math.PI * 2; t += 0.02) { 
-                    let ax = l2 * Math.cos(t), ay = l2 * Math.sin(t);
-                    let dist = Math.sqrt(Math.pow(l1 - ax, 2) + Math.pow(-ay, 2));
-                    if (dist <= l3 + l4 && dist >= Math.abs(l3 - l4)) {
-                        let phi1 = Math.atan2(-ay, l1 - ax);
-                        let phi2 = Math.acos((l3*l3 + dist*dist - l4*l4) / (2 * l3 * dist));
-                        let th3 = phi1 - phi2;
-                        tracePath.push({ x: ax + cpL * Math.cos(th3 + cpA), y: ay + cpL * Math.sin(th3 + cpA) });
-                        validAngles.push(t); validCount++;
+                let evalAngles = getEvaluationAngles(l1, l2, l3, l4);
+
+                for (let t of evalAngles) { 
+                    let ax = l2 * Math.cos(t), ay = l2 * Math.sin(t), dist = Math.hypot(l1 - ax, -ay);
+                    // 1e-4 precision allowance to catch the exact boundary roots we analytically injected
+                    if (dist <= l3 + l4 + 1e-4 && dist >= Math.abs(l3 - l4) - 1e-4) {
+                        let p1 = Math.atan2(-ay, l1 - ax);
+                        let p2 = 0;
+                        if (dist > 1e-6) {
+                            // Hard clamp prevents NaN crash at the exact limit bounds
+                            let cos_val = Math.max(-1, Math.min(1, (l3*l3 + dist*dist - l4*l4) / (2 * l3 * dist)));
+                            p2 = Math.acos(cos_val);
+                        }
+                        
+                        let th3_1 = p1 - p2; tracePath.push({ x: ax + cpL * Math.cos(th3_1 + cpA), y: ay + cpL * Math.sin(th3_1 + cpA) });
+                        let th3_2 = p1 + p2; tracePathAlt.push({ x: ax + cpL * Math.cos(th3_2 + cpA), y: ay + cpL * Math.sin(th3_2 + cpA) });
+                        validAngles.push(t); vc++;
                     }
                 }
             } else {
-                let r = parseFloat(document.getElementById('R').value);
-                let l = parseFloat(document.getElementById('L-sl').value);
+                let r = parseFloat(document.getElementById('R').value), l = parseFloat(document.getElementById('L-sl').value);
                 let inv = document.querySelector('input[name="sl-ground-link"]:checked').value;
-                if (l < r) { statDiv.innerText = "Error: Rod must be longer than Crank!"; statDiv.className = "status-bad"; } 
-                else { statDiv.innerText = "Status: Valid Configuration"; statDiv.className = "status-good"; }
-                
+                stat.innerText = l < r ? "Error: Rod < Crank" : "Status: Valid"; stat.className = l < r ? "status-bad" : "status-good";
                 if (l >= r) {
                     for (let t = 0; t <= Math.PI * 2; t += 0.02) {
                         let px, py;
                         if (inv === "1") { px = r * Math.cos(t); py = r * Math.sin(t); }
-                        else if (inv === "2") { let d = r * Math.cos(t) + Math.sqrt(l*l - r*r * Math.pow(Math.sin(t), 2)); px = d * Math.cos(t); py = d * Math.sin(t); }
+                        else if (inv === "2") { let d = r*Math.cos(t) + Math.sqrt(l*l - r*r*Math.pow(Math.sin(t),2)); px = d*Math.cos(t); py = d*Math.sin(t); }
                         else if (inv === "3") { px = r * Math.cos(t); py = r * Math.sin(t); }
-                        else if (inv === "4") { let d = -r * Math.cos(t) + Math.sqrt(l*l - r*r * Math.pow(Math.sin(t), 2)); px = d + r * Math.cos(t); py = r * Math.sin(t); }
-                        tracePath.push({x: px, y: py}); validAngles.push(t); validCount++;
+                        else { let d = -r*Math.cos(t) + Math.sqrt(l*l - r*r*Math.pow(Math.sin(t),2)); px = d + r*Math.cos(t); py = r*Math.sin(t); }
+                        tracePath.push({x: px, y: py}); validAngles.push(t); vc++;
                     }
                 }
             }
         }
 
-        // --- DYNAMIC AXIS & VECTOR SCALING LOGIC ---
+        // --- Numbered Grid for Main Canvas ---
+        function drawMainGrid(ctx, w, h, scale) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1 / scale;
+            
+            let visibleWidth = w / scale;
+            let step = 10;
+            if (visibleWidth > 500) step = 100;
+            else if (visibleWidth > 200) step = 50;
+            else if (visibleWidth > 100) step = 20;
+            else if (visibleWidth > 20) step = 5;
+            else step = 2;
+
+            let sX = -w/(2*scale), eX = w/(2*scale), sY = -h/(2*scale), eY = h/(2*scale);
+
+            ctx.beginPath();
+            for (let x = Math.floor(sX/step)*step; x < eX; x += step) { ctx.moveTo(x, sY); ctx.lineTo(x, eY); }
+            for (let y = Math.floor(sY/step)*step; y < eY; y += step) { ctx.moveTo(sX, y); ctx.lineTo(eX, y); }
+            ctx.stroke();
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.lineWidth = 2 / scale;
+            ctx.beginPath(); ctx.moveTo(sX, 0); ctx.lineTo(eX, 0); ctx.moveTo(0, sY); ctx.lineTo(0, eY); ctx.stroke();
+            
+            // Drawing accurate numbers on grid
+            ctx.scale(1, -1);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.font = (12/scale) + "px Arial";
+            for (let x = Math.floor(sX/step)*step; x < eX; x += step) { if (x !== 0) ctx.fillText(x, x + 4/scale, 16/scale); }
+            for (let y = Math.floor(sY/step)*step; y < eY; y += step) { if (y !== 0) ctx.fillText(y, 6/scale, -y - 4/scale); }
+            ctx.fillText("0", 6/scale, 16/scale);
+            ctx.restore();
+        }
+
+        // --- Vector Diagram Code ---
         function createCoordinateMapper(w, h, points) {
             let minX = 0, maxX = 0, minY = 0, maxY = 0;
             if (points.length > 0) {
-                minX = Math.min(...points.map(p => p.x));
-                maxX = Math.max(...points.map(p => p.x));
-                minY = Math.min(...points.map(p => p.y));
-                maxY = Math.max(...points.map(p => p.y));
+                minX = Math.min(...points.map(p => p.x)); maxX = Math.max(...points.map(p => p.x));
+                minY = Math.min(...points.map(p => p.y)); maxY = Math.max(...points.map(p => p.y));
             }
-            // Always include origin 0,0
-            minX = Math.min(minX, 0); maxX = Math.max(maxX, 0);
-            minY = Math.min(minY, 0); maxY = Math.max(maxY, 0);
-
-            let rangeX = Math.max(maxX - minX, 0.001);
-            let rangeY = Math.max(maxY - minY, 0.001);
-            
-            // 80% padding so things don't touch edges
-            let scale = 0.8 * Math.min(w / rangeX, h / rangeY);
-            let cx = (minX + maxX) / 2;
-            let cy = (minY + maxY) / 2;
-
-            return {
-                mapX: (x) => w/2 + (x - cx) * scale,
-                mapY: (y) => h/2 - (y - cy) * scale, // Y axis flips conventionally here
-                scale: scale, minX, maxX, minY, maxY, rangeX, rangeY
-            };
+            minX = Math.min(minX, 0); maxX = Math.max(maxX, 0); minY = Math.min(minY, 0); maxY = Math.max(maxY, 0);
+            let rangeX = Math.max(maxX - minX, 0.001), rangeY = Math.max(maxY - minY, 0.001);
+            let scale = 0.75 * Math.min(w / rangeX, h / rangeY); 
+            return { mapX: x => w/2 + (x - (minX + maxX)/2) * scale, mapY: y => h/2 - (y - (minY + maxY)/2) * scale, minX, maxX, minY, maxY, rangeX, rangeY };
         }
 
         function drawSmartGrid(ctx, w, h, map) {
             ctx.clearRect(0, 0, w, h);
-            
-            // Calculate a clean grid step size (powers of 10)
-            let maxRange = Math.max(map.rangeX, map.rangeY);
-            let order = Math.floor(Math.log10(maxRange));
-            let step = Math.pow(10, order);
-            if (maxRange / step < 3) step /= 5;
-            else if (maxRange / step < 6) step /= 2;
+            let maxRange = Math.max(map.rangeX, map.rangeY), step = Math.pow(10, Math.floor(Math.log10(maxRange)));
+            if (maxRange / step < 3) step /= 5; else if (maxRange / step < 6) step /= 2;
 
-            ctx.strokeStyle = '#e8e8e8';
-            ctx.fillStyle = '#666';
-            ctx.font = '11px Arial';
-            ctx.lineWidth = 1;
-
-            // Draw X grid lines
-            let startX = Math.floor(map.minX / step) * step;
-            for (let x = startX; x <= map.maxX + step; x += step) {
-                let px = map.mapX(x);
-                ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h); ctx.stroke();
-                if(Math.abs(x) > 1e-5) ctx.fillText(parseFloat(x.toPrecision(3)), px + 5, map.mapY(0) + 15);
+            ctx.strokeStyle = '#e8e8e8'; ctx.fillStyle = '#666'; ctx.font = '11px Arial'; ctx.lineWidth = 1;
+            for (let x = Math.floor(map.minX/step)*step; x <= map.maxX+step; x += step) {
+                let px = map.mapX(x); ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h); ctx.stroke();
+                if(Math.abs(x) > 1e-5) ctx.fillText(parseFloat(x.toPrecision(3)), px+5, map.mapY(0)+15);
             }
-
-            // Draw Y grid lines
-            let startY = Math.floor(map.minY / step) * step;
-            for (let y = startY; y <= map.maxY + step; y += step) {
-                let py = map.mapY(y);
-                ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(w, py); ctx.stroke();
-                if(Math.abs(y) > 1e-5) ctx.fillText(parseFloat(y.toPrecision(3)), map.mapX(0) + 5, py - 5);
+            for (let y = Math.floor(map.minY/step)*step; y <= map.maxY+step; y += step) {
+                let py = map.mapY(y); ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(w, py); ctx.stroke();
+                if(Math.abs(y) > 1e-5) ctx.fillText(parseFloat(y.toPrecision(3)), map.mapX(0)+5, py-5);
             }
-
-            // Draw Main Axes
-            ctx.strokeStyle = '#999';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#999'; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.moveTo(0, map.mapY(0)); ctx.lineTo(w, map.mapY(0)); ctx.stroke(); 
             ctx.beginPath(); ctx.moveTo(map.mapX(0), 0); ctx.lineTo(map.mapX(0), h); ctx.stroke(); 
-            ctx.fillText("0", map.mapX(0) + 5, map.mapY(0) + 15);
+            ctx.fillText("0", map.mapX(0)+5, map.mapY(0)+15);
         }
 
-        function drawMappedArrow(ctx, map, x1, y1, x2, y2, color, label, dashPattern = []) {
-            let px1 = map.mapX(x1), py1 = map.mapY(y1);
-            let px2 = map.mapX(x2), py2 = map.mapY(y2);
-            
-            let headlen = 12; 
+        function drawMappedArrow(ctx, map, x1, y1, x2, y2, color, label, dash = []) {
+            let px1 = map.mapX(x1), py1 = map.mapY(y1), px2 = map.mapX(x2), py2 = map.mapY(y2);
             let dx = px2 - px1, dy = py2 - py1;
-            if(Math.hypot(dx,dy) < 2){
-                ctx.beginPath();
-                ctx.arc(px1, py1, 3, 0, Math.PI*2);
-                ctx.fillStyle = color;
-                ctx.fill();
-                ctx.font = "bold 13px Arial";
-                let tw = ctx.measureText(label).width;
-                let tx = px1 + 6, ty = py1 + 4;
-                ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-                ctx.fillRect(tx - 3, ty - 12, tw + 6, 16);
-                ctx.fillStyle = "#222";
-                ctx.fillText(label, tx, ty);
-                return;
-            }
-            let angle = Math.atan2(dy, dx);
+            let len = Math.hypot(dx, dy);
             
+            ctx.font = "bold 13px Arial"; 
+            ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            let tw = ctx.measureText(label).width;
+            
+            // Tiny Vector Handling
+            if(len < 3) {
+                ctx.beginPath(); ctx.arc(px1, py1, 4, 0, Math.PI*2); ctx.fillStyle = color; ctx.fill();
+                ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.fillRect(px1+10 - tw/2, py1+10 - 8, tw+8, 16);
+                ctx.fillStyle = "#222"; ctx.fillText(label, px1+10, py1+10);
+                return; 
+            }
+
+            let angle = Math.atan2(dy, dx), headlen = 12; 
             ctx.beginPath(); ctx.moveTo(px1, py1); ctx.lineTo(px2, py2);
-            ctx.strokeStyle = color; ctx.lineWidth = 2.5; 
-            ctx.setLineDash(dashPattern); ctx.stroke(); ctx.setLineDash([]); 
+            ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.setLineDash(dash); ctx.stroke(); ctx.setLineDash([]); 
             
             ctx.beginPath(); ctx.moveTo(px2, py2);
-            ctx.lineTo(px2 - headlen * Math.cos(angle - Math.PI / 6), py2 - headlen * Math.sin(angle - Math.PI / 6));
-            ctx.lineTo(px2 - headlen * Math.cos(angle + Math.PI / 6), py2 - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.lineTo(px2 - headlen*Math.cos(angle - Math.PI/6), py2 - headlen*Math.sin(angle - Math.PI/6));
+            ctx.lineTo(px2 - headlen*Math.cos(angle + Math.PI/6), py2 - headlen*Math.sin(angle + Math.PI/6));
             ctx.lineTo(px2, py2); ctx.fillStyle = color; ctx.fill();
             
-            ctx.font = "bold 13px Arial";
-            let tw = ctx.measureText(label).width;
-            let tx = px1 + dx/2 + 8, ty = py1 + dy/2;
+            // Dynamic Label Offset perfectly perpendicular to vector
+            let nx = -dy / len, ny = dx / len;
+            let offset = 18; 
+            let tx = px1 + dx*0.5 + nx*offset, ty = py1 + dy*0.5 + ny*offset;
             
-            ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-            ctx.fillRect(tx - 3, ty - 12, tw + 6, 16);
-            ctx.fillStyle = "#222"; 
-            ctx.fillText(label, tx, ty);
+            ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.fillRect(tx - tw/2 - 4, ty - 10, tw+8, 20);
+            ctx.fillStyle = "#222"; ctx.fillText(label, tx, ty);
         }
 
         function openVectorModal() {
-            if(document.getElementById('status').innerText.includes("Error")) return alert("Mechanism broken.");
+            if(document.getElementById('status').innerText.includes("Error") || document.getElementById('status').innerText.includes("Folded")) return alert("Mechanism geometry invalid.");
+            document.getElementById('vector-modal').style.display = 'flex'; resize(); 
             
-            document.getElementById('vector-modal').style.display = 'flex';
-            resize(); 
-            
-            let th2 = parseFloat(document.getElementById('in_th2').value) * Math.PI / 180;
+            let th2 = parseFloat(document.getElementById('in_th2').value) * Math.PI/180;
             let w2 = parseFloat(document.getElementById('in_w2').value);
             let a2 = parseFloat(document.getElementById('in_a2').value);
-            document.getElementById('vector-title').innerText = `Vector Diagrams (θ₂ = ${Math.round(th2*180/Math.PI)}°, ω₂ = ${w2}, α₂ = ${a2})`;
-
+            
             if (currentMech === 'fourbar') {
                 let { l1, l2, l3, l4 } = getMappedLengths(); 
-                let ax = l2 * Math.cos(th2), ay = l2 * Math.sin(th2);
-                let dist = Math.hypot(l1 - ax, -ay);
-                if (dist > l3 + l4 || dist < Math.abs(l3 - l4)) {
-                    document.getElementById('vector-modal').style.display = 'none';
-                    return alert("Given θ₂ cannot be assembled in this configuration.");
+                let mode = parseInt(document.querySelector('input[name="assembly-mode"]:checked').value);
+                
+                let ax = l2*Math.cos(th2), ay = l2*Math.sin(th2), dist = Math.hypot(l1-ax, -ay);
+                if (dist > l3+l4 || dist < Math.abs(l3-l4)) return alert("Cannot assemble at this specific angle. Turn the crank.");
+                
+                let p1 = Math.atan2(-ay, l1-ax);
+                let p2 = 0;
+                if (dist > 1e-6) {
+                    let cos_val = Math.max(-1, Math.min(1, (l3*l3 + dist*dist - l4*l4)/(2*l3*dist)));
+                    p2 = Math.acos(cos_val);
                 }
-                let phi1 = Math.atan2(-ay, l1 - ax), phi2 = Math.acos((l3*l3 + dist*dist - l4*l4) / (2 * l3 * dist));
-                let th3 = phi1 - phi2;
-                let bx = ax + l3 * Math.cos(th3), by = ay + l3 * Math.sin(th3);
-                let th4 = Math.atan2(by, bx - l1);
+                let th3 = p1 - mode * p2; 
+                let bx = ax + l3*Math.cos(th3), by = ay + l3*Math.sin(th3), th4 = Math.atan2(by, bx-l1);
 
-                // POSITION
-                let posPoints = [ {x:0,y:0}, {x:l1, y:0}, {x:ax, y:ay}, {x:bx, y:by} ];
-                let mapPos = createCoordinateMapper(posCanvas.width, posCanvas.height, posPoints);
-                drawSmartGrid(posCtx, posCanvas.width, posCanvas.height, mapPos);
-                drawMappedArrow(posCtx, mapPos, 0, 0, l1, 0, "#9E9E9E", "r1");
-                drawMappedArrow(posCtx, mapPos, 0, 0, ax, ay, "#FF5252", "r2");
-                drawMappedArrow(posCtx, mapPos, ax, ay, bx, by, "#4CAF50", "r3");
-                drawMappedArrow(posCtx, mapPos, l1, 0, bx, by, "#2196F3", "r4");
+                let mPos = createCoordinateMapper(posCanvas.width, posCanvas.height, [{x:0,y:0},{x:l1,y:0},{x:ax,y:ay},{x:bx,y:by}]);
+                drawSmartGrid(posCtx, posCanvas.width, posCanvas.height, mPos);
+                drawMappedArrow(posCtx, mPos, 0,0, l1,0, "#9E9E9E", "r1");
+                drawMappedArrow(posCtx, mPos, 0,0, ax,ay, "#FF5252", "r2");
+                drawMappedArrow(posCtx, mPos, ax,ay, bx,by, "#4CAF50", "r3");
+                drawMappedArrow(posCtx, mPos, l1,0, bx,by, "#2196F3", "r4");
 
-                // VELOCITY
-                let V_A_mag = l2 * w2, V_A_ang = th2 + Math.PI/2;
-                let det = l3 * l4 * Math.sin(th3 - th4);
-                let w3 = (l2 * w2 * Math.sin(th4 - th2)) / det, w4 = (l2 * w2 * Math.sin(th3 - th2)) / det;
-                let V_BA_mag = l3 * w3, V_BA_ang = th3 + Math.PI/2;
-                let V_B_mag = l4 * w4,  V_B_ang = th4 + Math.PI/2;
+                let det = l3*l4*Math.sin(th3-th4);
+                let w3 = (l2*w2*Math.sin(th4-th2))/det, w4 = (l2*w2*Math.sin(th3-th2))/det;
+                let vA = {x: -l2*w2*Math.sin(th2), y: l2*w2*Math.cos(th2)};
+                let vB = {x: -l4*w4*Math.sin(th4), y: l4*w4*Math.cos(th4)};
+                let mVel = createCoordinateMapper(velCanvas.width, velCanvas.height, [{x:0,y:0}, vA, vB]);
+                drawSmartGrid(velCtx, velCanvas.width, velCanvas.height, mVel);
+                drawMappedArrow(velCtx, mVel, 0,0, vA.x,vA.y, "red", "vA");
+                drawMappedArrow(velCtx, mVel, vA.x,vA.y, vB.x,vB.y, "green", "vBA");
+                drawMappedArrow(velCtx, mVel, 0,0, vB.x,vB.y, "blue", "vB");
 
-                let vaX = V_A_mag * Math.cos(V_A_ang), vaY = V_A_mag * Math.sin(V_A_ang);
-                let vbX = V_B_mag * Math.cos(V_B_ang), vbY = V_B_mag * Math.sin(V_B_ang);
+                let aA_n = {x: -l2*w2*w2*Math.cos(th2), y: -l2*w2*w2*Math.sin(th2)};
+                let aA_t = {x: -l2*a2*Math.sin(th2), y: l2*a2*Math.cos(th2)};
+                let aA = {x: aA_n.x+aA_t.x, y: aA_n.y+aA_t.y};
 
-                let velPoints = [ {x:0,y:0}, {x:vaX, y:vaY}, {x:vbX, y:vbY} ];
-                let mapVel = createCoordinateMapper(velCanvas.width, velCanvas.height, velPoints);
-                drawSmartGrid(velCtx, velCanvas.width, velCanvas.height, mapVel);
-                drawMappedArrow(velCtx, mapVel, 0, 0, vaX, vaY, "red", "Va");
-                drawMappedArrow(velCtx, mapVel, vaX, vaY, vbX, vbY, "green", "Vba");
-                drawMappedArrow(velCtx, mapVel, 0, 0, vbX, vbY, "blue", "Vb");
+                let aBA_n = {x: -l3*w3*w3*Math.cos(th3), y: -l3*w3*w3*Math.sin(th3)};
+                let aB_n = {x: -l4*w4*w4*Math.cos(th4), y: -l4*w4*w4*Math.sin(th4)};
 
-                // ACCELERATION
-                let An_A_mag = l2 * w2*w2, An_A_ang = th2 + Math.PI;
-                let At_A_mag = l2 * a2,    At_A_ang = th2 + Math.PI/2;
-                let An_BA_mag = l3 * w3*w3, An_BA_ang = th3 + Math.PI;
-                let An_B_mag = l4 * w4*w4,  An_B_ang = th4 + Math.PI;
+                let rhs_x = aA.x + aBA_n.x - aB_n.x, rhs_y = aA.y + aBA_n.y - aB_n.y;
+                let a3 = (rhs_x*Math.cos(th4+Math.PI/2) + rhs_y*Math.sin(th4+Math.PI/2)) / Math.sin(th3-th4) / l3;
+                let a4 = (rhs_x*Math.cos(th3+Math.PI/2) + rhs_y*Math.sin(th3+Math.PI/2)) / Math.sin(th3-th4) / l4;
 
-                let A_A_x = An_A_mag*Math.cos(An_A_ang) + At_A_mag*Math.cos(At_A_ang);
-                let A_A_y = An_A_mag*Math.sin(An_A_ang) + At_A_mag*Math.sin(At_A_ang);
-                let rhs_x = A_A_x + An_BA_mag*Math.cos(An_BA_ang) - An_B_mag*Math.cos(An_B_ang);
-                let rhs_y = A_A_y + An_BA_mag*Math.sin(An_BA_ang) - An_B_mag*Math.sin(An_B_ang);
-                let a3 = (rhs_x * Math.cos(th4 + Math.PI/2) + rhs_y * Math.sin(th4 + Math.PI/2)) / Math.sin(th3 - th4) / l3;
-                let a4 = (rhs_x * Math.cos(th3 + Math.PI/2) + rhs_y * Math.sin(th3 + Math.PI/2)) / Math.sin(th3 - th4) / l4;
+                let aBA_t = {x: -l3*a3*Math.sin(th3), y: l3*a3*Math.cos(th3)};
+                let aB_t = {x: -l4*a4*Math.sin(th4), y: l4*a4*Math.cos(th4)};
+                
+                let aBA = {x: aBA_n.x+aBA_t.x, y: aBA_n.y+aBA_t.y};
+                let aB = {x: aB_n.x+aB_t.x, y: aB_n.y+aB_t.y};
 
-                let At_BA_mag = Math.abs(l3*a3), At_BA_ang = th3 + (a3>0 ? Math.PI/2 : -Math.PI/2);
-                let At_B_mag = Math.abs(l4*a4),  At_B_ang = th4 + (a4>0 ? Math.PI/2 : -Math.PI/2);
+                let pO = {x:0,y:0}, pAn = aA_n, pA = aA, pBAn = {x:aA.x+aBA_n.x, y:aA.y+aBA_n.y}, pB = aB, pBn = aB_n;
+                let mAcc = createCoordinateMapper(accCanvas.width, accCanvas.height, [pO, pAn, pA, pBAn, pB, pBn]);
+                drawSmartGrid(accCtx, accCanvas.width, accCanvas.height, mAcc);
 
-                let p_O = {x:0, y:0};
-                let p_An_A = {x: An_A_mag*Math.cos(An_A_ang), y: An_A_mag*Math.sin(An_A_ang)};
-                let p_A = {x: A_A_x, y: A_A_y};
-                let p_An_BA = {x: A_A_x + An_BA_mag*Math.cos(An_BA_ang), y: A_A_y + An_BA_mag*Math.sin(An_BA_ang)};
-                let p_B = {x: An_B_mag*Math.cos(An_B_ang) + At_B_mag*Math.cos(At_B_ang), y: An_B_mag*Math.sin(An_B_ang) + At_B_mag*Math.sin(At_B_ang)};
-                let p_An_B = {x: An_B_mag*Math.cos(An_B_ang), y: An_B_mag*Math.sin(An_B_ang)};
-
-                let accPoints = [ p_O, p_An_A, p_A, p_An_BA, p_B, p_An_B ];
-                let mapAcc = createCoordinateMapper(accCanvas.width, accCanvas.height, accPoints);
-                drawSmartGrid(accCtx, accCanvas.width, accCanvas.height, mapAcc);
-
-                drawMappedArrow(accCtx, mapAcc, p_O.x, p_O.y, p_An_A.x, p_An_A.y, "red", "aA^n", [6, 4]);
-                drawMappedArrow(accCtx, mapAcc, p_An_A.x, p_An_A.y, p_A.x, p_A.y, "red", "aA^t", [2, 3]);
-                drawMappedArrow(accCtx, mapAcc, p_O.x, p_O.y, p_A.x, p_A.y, "red", "aA");
-
-                drawMappedArrow(accCtx, mapAcc, p_A.x, p_A.y, p_An_BA.x, p_An_BA.y, "green", "aBA^n", [6, 4]);
-                drawMappedArrow(accCtx, mapAcc, p_An_BA.x, p_An_BA.y, p_B.x, p_B.y, "green", "aBA^t", [2, 3]);
-                drawMappedArrow(accCtx, mapAcc, p_A.x, p_A.y, p_B.x, p_B.y, "green", "aBA");
-
-                drawMappedArrow(accCtx, mapAcc, p_O.x, p_O.y, p_An_B.x, p_An_B.y, "blue", "aB^n", [6, 4]);
-                drawMappedArrow(accCtx, mapAcc, p_An_B.x, p_An_B.y, p_B.x, p_B.y, "blue", "aB^t", [2, 3]);
-                drawMappedArrow(accCtx, mapAcc, p_O.x, p_O.y, p_B.x, p_B.y, "blue", "aB");
+                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pA.x,pA.y, "red", "aA");
+                drawMappedArrow(accCtx, mAcc, pA.x,pA.y, pB.x,pB.y, "green", "aBA");
+                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pB.x,pB.y, "blue", "aB");
+                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pAn.x,pAn.y, "red", "aA_n", [6,4]);
+                drawMappedArrow(accCtx, mAcc, pAn.x,pAn.y, pA.x,pA.y, "red", "aA_t", [2,3]);
+                drawMappedArrow(accCtx, mAcc, pA.x,pA.y, pBAn.x,pBAn.y, "green", "aBA_n", [6,4]);
+                drawMappedArrow(accCtx, mAcc, pBAn.x,pBAn.y, pB.x,pB.y, "green", "aBA_t", [2,3]);
+                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pBn.x,pBn.y, "blue", "aB_n", [6,4]);
+                drawMappedArrow(accCtx, mAcc, pBn.x,pBn.y, pB.x,pB.y, "blue", "aB_t", [2,3]);
 
             } else {
-                let r = parseFloat(document.getElementById('R').value);
-                let l = parseFloat(document.getElementById('L-sl').value);
+                let r = parseFloat(document.getElementById('R').value), l = parseFloat(document.getElementById('L-sl').value);
+                let th3 = Math.asin(-r*Math.sin(th2)/l), d = r*Math.cos(th2) + l*Math.cos(th3);
                 
-                // POSITION
-                let th3 = Math.asin(-r * Math.sin(th2) / l);
-                let d = r * Math.cos(th2) + l * Math.cos(th3);
+                let mPos = createCoordinateMapper(posCanvas.width, posCanvas.height, [{x:0,y:0},{x:r*Math.cos(th2),y:r*Math.sin(th2)},{x:d,y:0}]);
+                drawSmartGrid(posCtx, posCanvas.width, posCanvas.height, mPos);
+                drawMappedArrow(posCtx, mPos, 0,0, d,0, "#9E9E9E", "d");
+                drawMappedArrow(posCtx, mPos, 0,0, r*Math.cos(th2),r*Math.sin(th2), "#FF5252", "r2");
+                drawMappedArrow(posCtx, mPos, r*Math.cos(th2),r*Math.sin(th2), d,0, "#4CAF50", "r3");
+
+                let w3 = (-r*w2*Math.cos(th2))/(l*Math.cos(th3)), vb = -r*w2*Math.sin(th2)-l*w3*Math.sin(th3);
+                let vA = {x:-r*w2*Math.sin(th2), y:r*w2*Math.cos(th2)}, vB = {x:vb, y:0};
+                let mVel = createCoordinateMapper(velCanvas.width, velCanvas.height, [{x:0,y:0}, vA, vB]);
+                drawSmartGrid(velCtx, velCanvas.width, velCanvas.height, mVel);
+                drawMappedArrow(velCtx, mVel, 0,0, vA.x,vA.y, "red", "vA");
+                drawMappedArrow(velCtx, mVel, vA.x,vA.y, vB.x,vB.y, "green", "vBA");
+                drawMappedArrow(velCtx, mVel, 0,0, vB.x,vB.y, "blue", "vB");
+
+                let aA_n = {x:-r*w2*w2*Math.cos(th2), y:-r*w2*w2*Math.sin(th2)};
+                let aA_t = {x:-r*a2*Math.sin(th2), y:r*a2*Math.cos(th2)};
+                let aA = {x:aA_n.x+aA_t.x, y:aA_n.y+aA_t.y};
+                let a3 = (r*w2*w2*Math.sin(th2) - r*a2*Math.cos(th2) + l*w3*w3*Math.sin(th3))/(l*Math.cos(th3));
+                let ab = -r*a2*Math.sin(th2) - r*w2*w2*Math.cos(th2) - l*a3*Math.sin(th3) - l*w3*w3*Math.cos(th3);
+                let aBA_n = {x:-l*w3*w3*Math.cos(th3), y:-l*w3*w3*Math.sin(th3)};
+                let aBA_t = {x:-l*a3*Math.sin(th3), y:l*a3*Math.cos(th3)};
                 
-                let p_r2x = r*Math.cos(th2), p_r2y = r*Math.sin(th2);
-                let posPoints = [{x:0, y:0}, {x:p_r2x, y:p_r2y}, {x:d, y:0}];
-                let mapPos = createCoordinateMapper(posCanvas.width, posCanvas.height, posPoints);
-                drawSmartGrid(posCtx, posCanvas.width, posCanvas.height, mapPos);
+                let pO={x:0,y:0}, pAn=aA_n, pA=aA, pBAn={x:aA.x+aBA_n.x, y:aA.y+aBA_n.y}, pB={x:ab, y:0};
+                let mAcc = createCoordinateMapper(accCanvas.width, accCanvas.height, [pO,pAn,pA,pBAn,pB]);
+                drawSmartGrid(accCtx, accCanvas.width, accCanvas.height, mAcc);
 
-                drawMappedArrow(posCtx, mapPos, 0, 0, d, 0, "#9E9E9E", "d");
-                drawMappedArrow(posCtx, mapPos, 0, 0, p_r2x, p_r2y, "#FF5252", "r2");
-                drawMappedArrow(posCtx, mapPos, p_r2x, p_r2y, d, 0, "#4CAF50", "r3");
-
-                // VELOCITY
-                let Va_mag = r * w2, Va_ang = th2 + Math.PI/2;
-                let w3 = (-r * w2 * Math.cos(th2)) / (l * Math.cos(th3));
-                let Vb_mag = -r * w2 * Math.sin(th2) - l * w3 * Math.sin(th3);
-                
-                let vaX = Va_mag * Math.cos(Va_ang), vaY = Va_mag * Math.sin(Va_ang);
-                let vbX = Vb_mag, vbY = 0;
-                
-                let velPoints = [{x:0,y:0}, {x:vaX, y:vaY}, {x:vbX, y:vbY}];
-                let mapVel = createCoordinateMapper(velCanvas.width, velCanvas.height, velPoints);
-                drawSmartGrid(velCtx, velCanvas.width, velCanvas.height, mapVel);
-
-                drawMappedArrow(velCtx, mapVel, 0, 0, vaX, vaY, "red", "Va");
-                drawMappedArrow(velCtx, mapVel, vaX, vaY, vbX, vbY, "green", "Vba");
-                drawMappedArrow(velCtx, mapVel, 0, 0, vbX, vbY, "blue", "Vb");
-
-                // ACCELERATION
-                let An_A_x = -r*w2*w2*Math.cos(th2), An_A_y = -r*w2*w2*Math.sin(th2);
-                let At_A_x = -r*a2*Math.sin(th2),   At_A_y = r*a2*Math.cos(th2);
-                let A_A_x = An_A_x + At_A_x, A_A_y = An_A_y + At_A_y;
-
-                let a3 = (r*w2*w2*Math.sin(th2) - r*a2*Math.cos(th2) + l*w3*w3*Math.sin(th3)) / (l*Math.cos(th3));
-                let Ab_mag = -r*a2*Math.sin(th2) - r*w2*w2*Math.cos(th2) - l*a3*Math.sin(th3) - l*w3*w3*Math.cos(th3);
-                
-                let An_BA_x = -l*w3*w3*Math.cos(th3), An_BA_y = -l*w3*w3*Math.sin(th3);
-                let At_BA_x = -l*a3*Math.sin(th3), At_BA_y = l*a3*Math.cos(th3);
-
-                let p_O = {x:0, y:0};
-                let p_An_A = {x: An_A_x, y: An_A_y};
-                let p_A = {x: A_A_x, y: A_A_y};
-                let p_An_BA = {x: A_A_x + An_BA_x, y: A_A_y + An_BA_y};
-                let p_B = {x: Ab_mag, y: 0};
-
-                let accPoints = [p_O, p_An_A, p_A, p_An_BA, p_B];
-                let mapAcc = createCoordinateMapper(accCanvas.width, accCanvas.height, accPoints);
-                drawSmartGrid(accCtx, accCanvas.width, accCanvas.height, mapAcc);
-
-                drawMappedArrow(accCtx, mapAcc, p_O.x, p_O.y, p_An_A.x, p_An_A.y, "red", "aA^n", [6, 4]);
-                drawMappedArrow(accCtx, mapAcc, p_An_A.x, p_An_A.y, p_A.x, p_A.y, "red", "aA^t", [2, 3]);
-                drawMappedArrow(accCtx, mapAcc, p_O.x, p_O.y, p_A.x, p_A.y, "red", "aA");
-                
-                drawMappedArrow(accCtx, mapAcc, p_A.x, p_A.y, p_An_BA.x, p_An_BA.y, "green", "aBA^n", [6, 4]);
-                drawMappedArrow(accCtx, mapAcc, p_An_BA.x, p_An_BA.y, p_B.x, p_B.y, "green", "aBA^t", [2, 3]);
-                drawMappedArrow(accCtx, mapAcc, p_A.x, p_A.y, p_B.x, p_B.y, "green", "aBA");
-
-                drawMappedArrow(accCtx, mapAcc, p_O.x, p_O.y, p_B.x, p_B.y, "blue", "aB");
+                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pA.x,pA.y, "red", "aA");
+                drawMappedArrow(accCtx, mAcc, pA.x,pA.y, pB.x,pB.y, "green", "aBA");
+                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pB.x,pB.y, "blue", "aB");
+                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pAn.x,pAn.y, "red", "aA_n", [6,4]);
+                drawMappedArrow(accCtx, mAcc, pAn.x,pAn.y, pA.x,pA.y, "red", "aA_t", [2,3]);
+                drawMappedArrow(accCtx, mAcc, pA.x,pA.y, pBAn.x,pBAn.y, "green", "aBA_n", [6,4]);
+                drawMappedArrow(accCtx, mAcc, pBAn.x,pBAn.y, pB.x,pB.y, "green", "aBA_t", [2,3]);
             }
         }
 
-        // --- Kinematic graphs logic ---
+        // --- Plotly Graphs ---
         function getDerivative(yArray, dx) {
             let dy = [];
-            for(let i = 0; i < yArray.length; i++) {
-                if(i === 0) dy.push((yArray[1] - yArray[0]) / dx);
-                else if(i === yArray.length - 1) dy.push((yArray[i] - yArray[i-1]) / dx);
-                else dy.push((yArray[i+1] - yArray[i-1]) / (2 * dx));
-            }
-            return dy;
+            for(let i=0; i<yArray.length; i++) {
+                if(i===0) dy.push((yArray[1]-yArray[0])/dx);
+                else if(i===yArray.length-1) dy.push((yArray[i]-yArray[i-1])/dx);
+                else dy.push((yArray[i+1]-yArray[i-1])/(2*dx));
+            } return dy;
         }
 
         function generatePlots() {
             if(document.getElementById('status').innerText.includes("Error")) return alert("Mechanism broken.");
-            let xData = [], yVel = [], yAcc = [], pxArray = [], pyArray = []; 
-            let titleVel = "", titleAcc = "", dx = 0.05; 
-            let in_w2 = parseFloat(document.getElementById('in_w2').value) || 1;
-            let in_a2 = parseFloat(document.getElementById('in_a2').value) || 0;
+            let dx = 0.05, xData = [], yV = [], yA = [], px = [], py = [], pxa = [], pya = [];
+            let in_w2 = parseFloat(document.getElementById('in_w2').value) || 1, in_a2 = parseFloat(document.getElementById('in_a2').value) || 0;
 
-            if (currentMech === 'fourbar') {
+            if(currentMech === 'fourbar') {
                 let { l1, l2, l3, l4 } = getMappedLengths(); 
-                let cpL = parseFloat(document.getElementById('CpL').value), cpA = parseFloat(document.getElementById('CpA').value) * (Math.PI / 180);
-                for (let t = 0; t <= Math.PI * 2; t += dx) {
-                    let ax = l2 * Math.cos(t), ay = l2 * Math.sin(t), dist = Math.sqrt(Math.pow(l1 - ax, 2) + Math.pow(-ay, 2));
-                    if (dist <= l3 + l4 && dist >= Math.abs(l3 - l4)) {
-                        let phi1 = Math.atan2(-ay, l1 - ax), phi2 = Math.acos((l3*l3 + dist*dist - l4*l4) / (2 * l3 * dist));
-                        let th3 = phi1 - phi2;
-                        pxArray.push(ax + cpL * Math.cos(th3 + cpA)); pyArray.push(ay + cpL * Math.sin(th3 + cpA)); xData.push(t * (180 / Math.PI)); 
+                let cpL = parseFloat(document.getElementById('CpL').value), cpA = parseFloat(document.getElementById('CpA').value)*Math.PI/180;
+                
+                let evalAngles = getEvaluationAngles(l1, l2, l3, l4);
+                
+                for (let t of evalAngles) {
+                    let ax=l2*Math.cos(t), ay=l2*Math.sin(t), dist=Math.hypot(l1-ax,-ay);
+                    if(dist<=l3+l4+1e-3 && dist>=Math.abs(l3-l4)-1e-3) {
+                        let p1=Math.atan2(-ay,l1-ax), p2=0;
+                        if(dist>1e-6) p2 = Math.acos(Math.max(-1, Math.min(1, (l3*l3+dist*dist-l4*l4)/(2*l3*dist))));
+                        px.push(ax+cpL*Math.cos(p1-p2+cpA)); py.push(ay+cpL*Math.sin(p1-p2+cpA));
+                        pxa.push(ax+cpL*Math.cos(p1+p2+cpA)); pya.push(ay+cpL*Math.sin(p1+p2+cpA));
+                        xData.push(t*180/Math.PI); 
                     }
                 }
+                let mode = parseInt(document.querySelector('input[name="assembly-mode"]:checked').value);
+                let sel_px = mode === 1 ? px : pxa;
+                let sel_py = mode === 1 ? py : pya;
                 
-                let v_px_theta = getDerivative(pxArray, dx), v_py_theta = getDerivative(pyArray, dx);
-                let a_px_theta = getDerivative(v_px_theta, dx), a_py_theta = getDerivative(v_py_theta, dx);
-
+                let vx=getDerivative(sel_px,dx), vy=getDerivative(sel_py,dx), ax=getDerivative(vx,dx), ay=getDerivative(vy,dx);
                 for(let i=0; i<xData.length; i++) {
-                    let vx = v_px_theta[i] * in_w2, vy = v_py_theta[i] * in_w2;
-                    yVel.push(Math.sqrt(vx*vx + vy*vy));
-                    let ax_tot = a_px_theta[i] * (in_w2*in_w2) + v_px_theta[i] * in_a2, ay_tot = a_py_theta[i] * (in_w2*in_w2) + v_py_theta[i] * in_a2;
-                    yAcc.push(Math.sqrt(ax_tot*ax_tot + ay_tot*ay_tot));
+                    yV.push(Math.hypot(vx[i]*in_w2, vy[i]*in_w2));
+                    yA.push(Math.hypot(ax[i]*in_w2*in_w2 + vx[i]*in_a2, ay[i]*in_w2*in_w2 + vy[i]*in_a2));
                 }
-                titleVel = "Coupler Point Velocity Magnitude |Vp|"; titleAcc = "Coupler Point Acceleration Magnitude |Ap|";
+                
                 document.getElementById('graph-trace').style.display = "block";
-                Plotly.newPlot('graph-trace', [{ x: pxArray, y: pyArray, mode: 'lines', line: {color: 'cyan'} }], { title: "Coupler Exact Value Trace", xaxis: {title: 'X Coordinate'}, yaxis: {title: 'Y Coordinate', scaleanchor: 'x'}, margin: {t:40, b:40, l:40, r:20} });
+                Plotly.newPlot('graph-trace', [
+                    { x: px, y: py, mode: 'lines', name: 'Open (Cyan)', line: {color: 'cyan', width: 2} },
+                    { x: pxa, y: pya, mode: 'lines', name: 'Crossed (Mag)', line: {color: 'magenta', width: 2, dash: 'dot'} }
+                ], { title: "Coupler Curve", margin: {t:40, b:40, l:50, r:20}, plot_bgcolor: "#f8f9fa", yaxis:{scaleanchor:'x', scaleratio:1} });
+
             } else {
-                let r = parseFloat(document.getElementById('R').value), l = parseFloat(document.getElementById('L-sl').value), inv = document.querySelector('input[name="sl-ground-link"]:checked').value;
-                document.getElementById('graph-trace').style.display = "none"; 
-                let d_array = [];
-                for (let t = 0; t <= Math.PI * 2; t += dx) {
-                    let d = r * Math.cos(t) + Math.sqrt(l*l - r*r * Math.pow(Math.sin(t), 2));
-                    if (inv === "4") d = -r * Math.cos(t) + Math.sqrt(l*l - r*r * Math.pow(Math.sin(t), 2));
-                    d_array.push(d); xData.push(t * (180 / Math.PI));
+                document.getElementById('graph-trace').style.display = "none";
+                let r = parseFloat(document.getElementById('R').value), l = parseFloat(document.getElementById('L-sl').value), d_arr = [];
+                let inv = document.querySelector('input[name="sl-ground-link"]:checked').value;
+                for (let t=0; t<=Math.PI*2; t+=dx) {
+                    let d = r*Math.cos(t) + Math.sqrt(l*l - r*r*Math.pow(Math.sin(t),2));
+                    if(inv === "4") d = -r*Math.cos(t) + Math.sqrt(l*l - r*r*Math.pow(Math.sin(t),2));
+                    d_arr.push(d); xData.push(t*180/Math.PI);
                 }
-                let d_vel_theta = getDerivative(d_array, dx), d_acc_theta = getDerivative(d_vel_theta, dx);
-                for(let i=0; i<xData.length; i++) {
-                    yVel.push(Math.abs(d_vel_theta[i] * in_w2)); yAcc.push(Math.abs(d_acc_theta[i] * (in_w2*in_w2) + d_vel_theta[i] * in_a2));
-                }
-                titleVel = "Relative Slider Linear Velocity Magnitude"; titleAcc = "Relative Slider Linear Acceleration Magnitude";
+                let vel = getDerivative(d_arr,dx), acc = getDerivative(vel,dx);
+                for(let i=0; i<xData.length; i++) { yV.push(Math.abs(vel[i]*in_w2)); yA.push(Math.abs(acc[i]*in_w2*in_w2 + vel[i]*in_a2)); }
             }
+            
             document.getElementById('plot-modal').style.display = 'flex';
-            Plotly.newPlot('graph-vel', [{ x: xData, y: yVel, mode: 'lines', line: {color: 'blue'} }], { title: titleVel, xaxis: {title: 'Crank Angle (deg)'}, margin: {t:40, b:40, l:40, r:20} });
-            Plotly.newPlot('graph-acc', [{ x: xData, y: yAcc, mode: 'lines', line: {color: 'red'} }], { title: titleAcc, xaxis: {title: 'Crank Angle (deg)'}, margin: {t:40, b:40, l:40, r:20} });
+            let layout = { plot_bgcolor: "#f8f9fa", margin: {t:40, b:40, l:50, r:20} };
+            layout.title = "Velocity Magnitude"; Plotly.newPlot('graph-vel', [{x:xData, y:yV, mode:'lines', line:{color:'blue'}}], layout);
+            layout.title = "Acceleration Magnitude"; Plotly.newPlot('graph-acc', [{x:xData, y:yA, mode:'lines', line:{color:'red'}}], layout);
         }
 
-        function drawLine(x1, y1, x2, y2, color, pixelWidth) {
-            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
-            ctx.strokeStyle = color; ctx.lineWidth = pixelWidth / currentScale; 
-            ctx.lineCap = 'round'; ctx.stroke();
-        }
-        function drawJoint(x, y, color) {
-            ctx.beginPath(); ctx.arc(x, y, 6 / currentScale, 0, Math.PI * 2); 
-            ctx.fillStyle = color; ctx.fill();
-            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5 / currentScale; ctx.stroke();
-        }
+        function drawLine(x1, y1, x2, y2, color, w) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.strokeStyle = color; ctx.lineWidth = w/currentScale; ctx.lineCap = 'round'; ctx.stroke(); }
+        function drawJoint(x, y, color) { ctx.beginPath(); ctx.arc(x, y, 6/currentScale, 0, Math.PI*2); ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5/currentScale; ctx.stroke(); }
 
         function animate() {
             if (!isAnimating) { requestAnimationFrame(animate); return; }
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             let statText = document.getElementById('status').innerText;
-            if (statText.includes("Error") || statText.includes("Geometry")) {
+            if (statText.includes("Error") || statText.includes("Folded")) {
                 ctx.fillStyle = "#F44336"; ctx.font = "bold 32px Arial"; ctx.textAlign = "center";
-                ctx.fillText("⚠️ Impossible Geometry: Cannot Assemble", canvas.width / 2, canvas.height / 2);
+                ctx.fillText("⚠️ Bounds Reached: Mechanism Frozen or Impossible Geometry", canvas.width / 2, canvas.height / 2);
                 requestAnimationFrame(animate); return;
             }
 
-            let speed = parseFloat(document.getElementById('speed').value) * 0.02;
-            let zoomPct = 100 / 100;
+            let zoomPct = parseFloat(document.getElementById('zoom').value) / 100;
             
             ctx.save();
-            currentScale = (Math.min(canvas.width, canvas.height) / 40) * zoomPct; 
-            ctx.translate(canvas.width / 2 - (currentScale * 5), canvas.height / 2);
-            ctx.scale(currentScale, -currentScale); 
+            let maxDim = 10;
+            if (currentMech === 'fourbar') {
+                let { l1, l2, l3, l4 } = getMappedLengths();
+                maxDim = l1 + l2 + l3 + l4;
+            } else {
+                maxDim = (parseFloat(document.getElementById('R').value) + parseFloat(document.getElementById('L-sl').value)) * 2;
+            }
+            
+            let baseScale = (Math.min(canvas.width, canvas.height) / (maxDim * 1.1));
+            currentScale = baseScale * zoomPct;
 
+            ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(currentScale, -currentScale); 
+
+            drawMainGrid(ctx, canvas.width, canvas.height, currentScale);
+
+            // Trace 1 (Cyan)
             if (tracePath.length > 0) {
                 ctx.beginPath();
                 for (let i = 0; i < tracePath.length; i++) {
-                    if (i === 0) ctx.moveTo(tracePath[i].x, tracePath[i].y);
-                    else {
-                        let gap = Math.hypot(tracePath[i].x - tracePath[i-1].x, tracePath[i].y - tracePath[i-1].y);
-                        if (gap > 5) ctx.moveTo(tracePath[i].x, tracePath[i].y);
-                        else ctx.lineTo(tracePath[i].x, tracePath[i].y);
-                    }
-                }
-                ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)';
-                ctx.setLineDash([5 / currentScale, 5 / currentScale]); ctx.lineWidth = 2.5 / currentScale; 
-                ctx.stroke(); ctx.setLineDash([]);
+                    let gap = i===0 ? 0 : Math.hypot(tracePath[i].x-tracePath[i-1].x, tracePath[i].y-tracePath[i-1].y);
+                    if(i===0 || gap > maxDim/2) ctx.moveTo(tracePath[i].x, tracePath[i].y);
+                    else ctx.lineTo(tracePath[i].x, tracePath[i].y);
+                } 
+                ctx.strokeStyle='rgba(0, 255, 255, 0.8)'; ctx.setLineDash([5/currentScale, 5/currentScale]); ctx.lineWidth=2/currentScale; ctx.stroke(); ctx.setLineDash([]);
             }
+            // Trace 2 (Magenta)
+            if (tracePathAlt.length > 0 && currentMech === 'fourbar') {
+                ctx.beginPath();
+                for (let i = 0; i < tracePathAlt.length; i++) {
+                    let gap = i===0 ? 0 : Math.hypot(tracePathAlt[i].x-tracePathAlt[i-1].x, tracePathAlt[i].y-tracePathAlt[i-1].y);
+                    if(i===0 || gap > maxDim/2) ctx.moveTo(tracePathAlt[i].x, tracePathAlt[i].y);
+                    else ctx.lineTo(tracePathAlt[i].x, tracePathAlt[i].y);
+                } 
+                ctx.strokeStyle='rgba(255, 0, 255, 0.5)'; ctx.setLineDash([2/currentScale, 4/currentScale]); ctx.lineWidth=2/currentScale; ctx.stroke(); ctx.setLineDash([]);
+            }
+
+            let speed = parseFloat(document.getElementById('speed').value) * 0.02;
 
             if (currentMech === 'fourbar') {
                 let { l1, l2, l3, l4, id1, id2, id3, id4, shortestId } = getMappedLengths(); 
-                let cpL = parseFloat(document.getElementById('CpL').value);
-                let cpA = parseFloat(document.getElementById('CpA').value) * (Math.PI / 180);
+                let cpL = parseFloat(document.getElementById('CpL').value), cpA = parseFloat(document.getElementById('CpA').value)*Math.PI/180;
+                let mode = parseInt(document.querySelector('input[name="assembly-mode"]:checked').value);
+                let EPS = 1e-4;
 
                 let currentDist = Math.hypot(l1 - l2 * Math.cos(theta), -l2 * Math.sin(theta));
-                if (currentDist > l3 + l4 || currentDist < Math.abs(l3 - l4)) {
+                if (currentDist > l3 + l4 + EPS || currentDist < Math.abs(l3 - l4) - EPS) {
                     if (validAngles.length > 0) theta = validAngles[Math.floor(validAngles.length / 2)];
                 }
+
                 let nextTheta = theta + (speed * direction);
-                let nAx = l2 * Math.cos(nextTheta), nAy = l2 * Math.sin(nextTheta);
+                let nAx = l2*Math.cos(nextTheta), nAy = l2*Math.sin(nextTheta);
                 let nDist = Math.hypot(l1 - nAx, -nAy);
+                
+                // Safe boundary bumper to stop animations from falling into the NaN void
                 if (nDist > l3 + l4 || nDist < Math.abs(l3 - l4)) {
-                    direction *= -1; nextTheta = theta + (speed * direction);
+                    direction *= -1; 
+                    nextTheta = theta + (speed * direction);
+                    let nnAx = l2*Math.cos(nextTheta), nnAy = l2*Math.sin(nextTheta);
+                    if (Math.hypot(l1 - nnAx, -nnAy) > l3 + l4 || Math.hypot(l1 - nnAx, -nnAy) < Math.abs(l3 - l4)) {
+                        nextTheta = theta; 
+                    }
                 }
                 theta = nextTheta;
 
-                let ax = l2 * Math.cos(theta), ay = l2 * Math.sin(theta);
-                let dist = Math.hypot(l1 - ax, -ay);
-                if (dist <= l3 + l4 && dist >= Math.abs(l3 - l4)) {
-                    let phi1 = Math.atan2(-ay, l1 - ax), phi2 = Math.acos((l3*l3 + dist*dist - l4*l4) / (2 * l3 * dist));
-                    let th3 = phi1 - phi2;
-                    let bx = ax + l3 * Math.cos(th3), by = ay + l3 * Math.sin(th3);
-                    let px = ax + cpL * Math.cos(th3 + cpA), py = ay + cpL * Math.sin(th3 + cpA);
+                let ax = l2*Math.cos(theta), ay = l2*Math.sin(theta), dist = Math.hypot(l1-ax, -ay);
+                if (dist <= l3+l4+EPS && dist >= Math.abs(l3-l4)-EPS) {
+                    let p1 = Math.atan2(-ay, l1-ax), p2 = 0;
+                    if(dist > 1e-6) p2 = Math.acos(Math.max(-1, Math.min(1, (l3*l3+dist*dist-l4*l4)/(2*l3*dist))));
+                    
+                    let th3 = p1 - mode * p2;
+                    let bx = ax + l3*Math.cos(th3), by = ay + l3*Math.sin(th3);
+                    let px = ax + cpL*Math.cos(th3+cpA), py = ay + cpL*Math.sin(th3+cpA);
 
-                    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(px, py); ctx.closePath();
-                    ctx.fillStyle = 'rgba(0, 255, 255, 0.3)'; ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.lineTo(px,py); ctx.fillStyle='rgba(0,255,255,0.2)'; ctx.fill();
 
-                    const getColor = (id) => id === 1 ? '#9E9E9E' : id === 2 ? '#FF5252' : id === 3 ? '#4CAF50' : '#2196F3';
-                    const drawSpecialLine = (x1, y1, x2, y2, id) => {
-                        if (id === shortestId) {
-                            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
-                            ctx.strokeStyle = 'rgba(255, 235, 59, 0.6)'; ctx.lineWidth = 18 / currentScale; ctx.lineCap = 'round'; ctx.stroke();
-                        }
-                        drawLine(x1, y1, x2, y2, getColor(id), 8);
-                    };
-
-                    drawSpecialLine(0, 0, l1, 0, id1); drawSpecialLine(0, 0, ax, ay, id2);      
-                    drawSpecialLine(ax, ay, bx, by, id3); drawSpecialLine(l1, 0, bx, by, id4);     
-
-                    drawJoint(0, 0, getColor(id1)); drawJoint(l1, 0, getColor(id1));
-                    drawJoint(ax, ay, getColor(id2)); drawJoint(bx, by, getColor(id4));
-                    drawJoint(px, py, '#00FFFF');
+                    const col = id => id===1?'#9E9E9E':id===2?'#FF5252':id===3?'#4CAF50':'#2196F3';
+                    const dl = (x1,y1,x2,y2,id) => { if(id===shortestId) drawLine(x1,y1,x2,y2,'rgba(255,235,59,0.6)', 16); drawLine(x1,y1,x2,y2,col(id), 8); };
+                    dl(0,0,l1,0,id1); dl(0,0,ax,ay,id2); dl(ax,ay,bx,by,id3); dl(l1,0,bx,by,id4);     
+                    drawJoint(0,0,col(id1)); drawJoint(l1,0,col(id1)); drawJoint(ax,ay,col(id2)); drawJoint(bx,by,col(id4)); drawJoint(px,py,'#00FFFF');
                 }
-            } else if (currentMech === 'slider') {
-                let r = parseFloat(document.getElementById('R').value), l = parseFloat(document.getElementById('L-sl').value), inv = document.querySelector('input[name="sl-ground-link"]:checked').value;
-                theta = theta + (speed * direction);
-                let p12, p23, p34, trackAngle;
+            } else {
+                let r = parseFloat(document.getElementById('R').value), l = parseFloat(document.getElementById('L-sl').value);
+                let inv = document.querySelector('input[name="sl-ground-link"]:checked').value;
+                theta += speed * direction;
+                
+                let p12={x:0,y:0}, p23={x:r*Math.cos(theta), y:r*Math.sin(theta)}, p34={x:0,y:0}, ta=0;
+                let d = r*Math.cos(theta) + Math.sqrt(l*l - r*r*Math.pow(Math.sin(theta), 2));
+                
+                if (inv==="1") p34={x:d,y:0};
+                else if (inv==="2") { p23={x:r,y:0}; p34={x:d*Math.cos(theta),y:d*Math.sin(theta)}; ta=theta; }
+                else if (inv==="3") { p23={x:0,y:0}; p34={x:l,y:0}; ta=Math.atan2(-p23.y, p34.x-p23.x); }
+                else { let dn = -r*Math.cos(theta)+Math.sqrt(l*l-r*r*Math.pow(Math.sin(theta),2)); p12={x:dn,y:0}; p23={x:dn+r*Math.cos(theta),y:r*Math.sin(theta)}; }
 
-                if (inv === "1") {
-                    p12 = {x: 0, y: 0}; p23 = {x: r * Math.cos(theta), y: r * Math.sin(theta)};
-                    let d = r * Math.cos(theta) + Math.sqrt(l*l - r*r * Math.pow(Math.sin(theta), 2));
-                    p34 = {x: d, y: 0}; trackAngle = 0;
-                } else if (inv === "2") {
-                    p12 = {x: 0, y: 0}; p23 = {x: r, y: 0};
-                    let d = r * Math.cos(theta) + Math.sqrt(l*l - r*r * Math.pow(Math.sin(theta), 2));
-                    p34 = {x: d * Math.cos(theta), y: d * Math.sin(theta)}; trackAngle = theta;
-                } else if (inv === "3") {
-                    p23 = {x: 0, y: 0}; p34 = {x: l, y: 0};
-                    p12 = {x: r * Math.cos(theta), y: r * Math.sin(theta)};
-                    trackAngle = Math.atan2(p34.y - p12.y, p34.x - p12.x);
-                } else if (inv === "4") {
-                    p34 = {x: 0, y: 0};
-                    let d = -r * Math.cos(theta) + Math.sqrt(l*l - r*r * Math.pow(Math.sin(theta), 2));
-                    p12 = {x: d, y: 0}; p23 = {x: d + r * Math.cos(theta), y: r * Math.sin(theta)};
-                    trackAngle = 0;
-                }
+                let tx1 = p12.x - (l+r)*1.5*Math.cos(ta), ty1 = p12.y - (l+r)*1.5*Math.sin(ta);
+                let tx2 = p12.x + (l+r)*1.5*Math.cos(ta), ty2 = p12.y + (l+r)*1.5*Math.sin(ta);
 
-                const drawSliderLink = (x1, y1, x2, y2, color, isFixed) => {
-                    if (isFixed) {
-                        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
-                        ctx.strokeStyle = 'rgba(255, 235, 59, 0.6)'; ctx.lineWidth = 18 / currentScale; ctx.lineCap = 'round'; ctx.stroke();
-                    }
-                    drawLine(x1, y1, x2, y2, color, 8);
-                };
+                if(inv==="1") drawLine(tx1,ty1,tx2,ty2,'rgba(255,235,59,0.6)', 16); drawLine(tx1,ty1,tx2,ty2,'#9E9E9E', 8);
+                if(inv==="2") drawLine(p12.x,p12.y,p23.x,p23.y,'rgba(255,235,59,0.6)', 16); drawLine(p12.x,p12.y,p23.x,p23.y,'#FF5252', 8);
+                if(inv==="3") drawLine(p23.x,p23.y,p34.x,p34.y,'rgba(255,235,59,0.6)', 16); drawLine(p23.x,p23.y,p34.x,p34.y,'#4CAF50', 8);
 
-                let tL_start = - (l + r) * 1.5; let tL_end = (l + r) * 1.5;
-                if (inv === "3") { tL_start = -2; tL_end = Math.hypot(p34.x - p12.x, p34.y - p12.y) + r + 2; }
-                let tx1 = p12.x + tL_start * Math.cos(trackAngle), ty1 = p12.y + tL_start * Math.sin(trackAngle);
-                let tx2 = p12.x + tL_end * Math.cos(trackAngle), ty2 = p12.y + tL_end * Math.sin(trackAngle);
+                ctx.save(); ctx.translate(p34.x, p34.y); ctx.rotate(ta);
+                if(inv==="4"){ ctx.fillStyle='rgba(255,235,59,0.6)'; ctx.fillRect(-3-3/currentScale, -2-3/currentScale, 6+6/currentScale, 4+6/currentScale); }
+                ctx.fillStyle='rgba(33,150,243,0.7)'; ctx.fillRect(-3,-2,6,4); ctx.restore();
 
-                drawSliderLink(tx1, ty1, tx2, ty2, '#9E9E9E', inv === "1"); 
-                drawSliderLink(p12.x, p12.y, p23.x, p23.y, '#FF5252', inv === "2"); 
-                drawSliderLink(p23.x, p23.y, p34.x, p34.y, '#4CAF50', inv === "3"); 
-
-                ctx.save(); ctx.translate(p34.x, p34.y); ctx.rotate(trackAngle);
-                let blockW = 4, blockH = 2.5;
-                if (inv === "4") {
-                    let glow = 6 / currentScale; ctx.fillStyle = 'rgba(255, 235, 59, 0.6)';
-                    ctx.fillRect(-blockW/2 - glow/2, -blockH/2 - glow/2, blockW + glow, blockH + glow);
-                }
-                ctx.fillStyle = 'rgba(33, 150, 243, 0.7)'; ctx.fillRect(-blockW/2, -blockH/2, blockW, blockH);
-                ctx.strokeStyle = '#2196F3'; ctx.lineWidth = 2.5 / currentScale; ctx.strokeRect(-blockW/2, -blockH/2, blockW, blockH);
-                ctx.restore();
-
-                drawJoint(p12.x, p12.y, '#9E9E9E'); drawJoint(p23.x, p23.y, '#FF5252'); drawJoint(p34.x, p34.y, '#4CAF50'); 
+                drawJoint(p12.x,p12.y,'#9E9E9E'); drawJoint(p23.x,p23.y,'#FF5252'); drawJoint(p34.x,p34.y,'#4CAF50');
             }
-
             ctx.restore(); requestAnimationFrame(animate); 
         }
-
         requestAnimationFrame(animate);
     </script>
 </body>
