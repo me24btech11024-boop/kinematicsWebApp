@@ -76,15 +76,15 @@
                 <div class="control-group" style="background: #333; padding: 10px; border-radius: 8px; margin-top: 10px;">
                     <label style="color: #E0E0E0; text-align: center;">🔄 Assembly Mode (Coupler Curve)</label>
                     <div style="display: flex; justify-content: space-around;">
-                        <label><input type="radio" name="assembly-mode" value="1" checked onchange="calcTrace()"> Crossed (Cyan)</label>
-                        <label><input type="radio" name="assembly-mode" value="-1" onchange="calcTrace()"> Open (Orange)</label>
+                        <label><input type="radio" name="assembly-mode" value="1" checked onchange="calcTrace()"> Open (Cyan)</label>
+                        <label><input type="radio" name="assembly-mode" value="-1" onchange="calcTrace()"> Crossed (Orange)</label>
                     </div>
                 </div>
 
                 <div class="control-group"><label style="color: #9E9E9E;">L1 (Grey - Frame)</label><div class="input-row"><input type="range" id="L1" min="1" max="100" step="0.5" value="20" oninput="sync('L1')"><input type="number" id="num-L1" value="20" oninput="sync('num-L1')"></div></div>
-                <div class="control-group"><label style="color: #FF5252;">L2 (Red - Crank)</label><div class="input-row"><input type="range" id="L2" min="1" max="100" step="0.5" value="8" oninput="sync('L2')"><input type="number" id="num-L2" value="8" oninput="sync('num-L2')"></div></div>
-                <div class="control-group"><label style="color: #4CAF50;">L3 (Green - Coupler)</label><div class="input-row"><input type="range" id="L3" min="1" max="100" step="0.5" value="15" oninput="sync('L3')"><input type="number" id="num-L3" value="15" oninput="sync('num-L3')"></div></div>
-                <div class="control-group"><label style="color: #2196F3;">L4 (Blue - Rocker)</label><div class="input-row"><input type="range" id="L4" min="1" max="100" step="0.5" value="15" oninput="sync('L4')"><input type="number" id="num-L4" value="15" oninput="sync('num-L4')"></div></div>
+                <div class="control-group"><label style="color: #FF5252;">L2 (Red - Crank)</label><div class="input-row"><input type="range" id="L2" min="1" max="100" step="0.5" value="40" oninput="sync('L2')"><input type="number" id="num-L2" value="40" oninput="sync('num-L2')"></div></div>
+                <div class="control-group"><label style="color: #4CAF50;">L3 (Green - Coupler)</label><div class="input-row"><input type="range" id="L3" min="1" max="100" step="0.5" value="20" oninput="sync('L3')"><input type="number" id="num-L3" value="20" oninput="sync('num-L3')"></div></div>
+                <div class="control-group"><label style="color: #2196F3;">L4 (Blue - Rocker)</label><div class="input-row"><input type="range" id="L4" min="1" max="100" step="0.5" value="40" oninput="sync('L4')"><input type="number" id="num-L4" value="40" oninput="sync('num-L4')"></div></div>
                 <div class="control-group"><label>Coupler Ext Length</label><div class="input-row"><input type="range" id="CpL" min="0" max="100" step="0.5" value="10" oninput="sync('CpL')"><input type="number" id="num-CpL" value="10" oninput="sync('num-CpL')"></div></div>
                 <div class="control-group"><label>Coupler Angle (deg)</label><div class="input-row"><input type="range" id="CpA" min="-180" max="180" step="5" value="45" oninput="sync('CpA')"><input type="number" id="num-CpA" value="45" oninput="sync('num-CpA')"></div></div>
             </div>
@@ -107,8 +107,8 @@
             <div class="control-group" style="background: #333; padding: 10px; border-radius: 8px;">
                 <label style="color: #FFB300;">📐 Static Vector Inputs</label>
                 <div class="input-row"><label style="width: 80px;">θ₂ (deg):</label><input type="number" id="in_th2" value="30"></div>
-                <div class="input-row"><label style="width: 80px;">ω₂ (rad/s):</label><input type="number" id="in_w2" value="3.0"></div>
-                <div class="input-row"><label style="width: 80px;">α₂ (rad/s²):</label><input type="number" id="in_a2" value="6.0"></div>
+                <div class="input-row"><label style="width: 80px;">ω₂ (rad/s):</label><input type="number" id="in_w2" value="1.0"></div>
+                <div class="input-row"><label style="width: 80px;">α₂ (rad/s²):</label><input type="number" id="in_a2" value="0.0"></div>
                 <button class="plot-btn vec-btn" onclick="openVectorModal()">Show Vector Diagrams</button>
             </div>
 
@@ -252,8 +252,8 @@
                         let cos_val = Math.max(-1, Math.min(1, (l3*l3 + dist*dist - l4*l4) / (2 * l3 * dist)));
                         let p2 = Math.acos(cos_val);
                         
-                        let th3_1 = p1 - p2; tracePath.push({ x: ax + cpL * Math.cos(th3_1 + cpA), y: ay + cpL * Math.sin(th3_1 + cpA) });
-                        let th3_2 = p1 + p2; tracePathAlt.push({ x: ax + cpL * Math.cos(th3_2 + cpA), y: ay + cpL * Math.sin(th3_2 + cpA) });
+                        let th3_1 = p1 + p2; tracePath.push({ x: ax + cpL * Math.cos(th3_1 + cpA), y: ay + cpL * Math.sin(th3_1 + cpA) });
+                        let th3_2 = p1 - p2; tracePathAlt.push({ x: ax + cpL * Math.cos(th3_2 + cpA), y: ay + cpL * Math.sin(th3_2 + cpA) });
                         validAngles.push(t); 
                     }
                 }
@@ -398,7 +398,7 @@
                 let p1 = Math.atan2(-ay, l1-ax);
                 let cos_val = Math.max(-1, Math.min(1, (l3*l3 + dist*dist - l4*l4) / (2*l3*dist)));
                 let p2 = Math.acos(cos_val);
-                let th3 = p1 - mode*p2;
+                let th3 = p1 + mode*p2;
                 let bx = ax + l3*Math.cos(th3), by = ay + l3*Math.sin(th3);
                 let th4 = Math.atan2(by, bx - l1);
 
@@ -411,7 +411,7 @@
                 drawMappedArrow(posCtx, mPos, l1, 0, bx, by, "#2196F3", "r₄");     // rocker (B←D)
                 drawMappedArrow(posCtx, mPos,  0, 0, l1,  0, "#9E9E9E", "r₁");     // ground
 
-                // ── VELOCITY ANALYSIS ──
+                // ── VELOCITY ANALYSIS (Strictly CCW) ──
                 let sinDiff = Math.sin(th3 - th4);
                 let w3 = 0, w4 = 0;
                 if (Math.abs(sinDiff) > 1e-6) {
@@ -426,7 +426,7 @@
                 // vB = vA + vBA  (tip-to-tip)
                 let vB  = { x: vA.x + vBA.x,          y:  vA.y + vBA.y };
 
-                // Velocity polygon: O→vA→vB (with vBA as the bridge), vB also checked vs -l4*w4
+                // Velocity polygon: O→vA→vB (with vBA as the bridge)
                 let mVel = createCoordinateMapper(velCanvas.width, velCanvas.height,
                     [{x:0,y:0}, vA, vB]);
                 drawSmartGrid(velCtx, velCanvas.width, velCanvas.height, mVel);
@@ -582,12 +582,12 @@
                         let cos_val = Math.max(-1, Math.min(1, (l3*l3+dist*dist-l4*l4)/(2*l3*dist)));
                         let p2 = Math.acos(cos_val);
                         
-                        px.push(ax+cpL*Math.cos(p1-p2+cpA)); py.push(ay+cpL*Math.sin(p1-p2+cpA));
-                        pxa.push(ax+cpL*Math.cos(p1+p2+cpA)); pya.push(ay+cpL*Math.sin(p1+p2+cpA));
+                        px.push(ax+cpL*Math.cos(p1+p2+cpA)); py.push(ay+cpL*Math.sin(p1+p2+cpA));
+                        pxa.push(ax+cpL*Math.cos(p1-p2+cpA)); pya.push(ay+cpL*Math.sin(p1-p2+cpA));
 
                         // ANALYTIC EXACT KINEMATICS (Flawless curves, zero spikes)
                         let th2 = t;
-                        let th3 = p1 - mode * p2;
+                        let th3 = p1 + mode * p2;
                         let bx = ax + l3*Math.cos(th3), by = ay + l3*Math.sin(th3);
                         let th4 = Math.atan2(by, bx-l1);
 
@@ -733,7 +733,7 @@
                     let cos_val = Math.max(-1, Math.min(1, (l3*l3+dist*dist-l4*l4)/(2*l3*dist)));
                     let p2 = Math.acos(cos_val);
                     
-                    let th3 = p1 - mode * p2;
+                    let th3 = p1 + mode * p2;
                     let bx = ax + l3*Math.cos(th3), by = ay + l3*Math.sin(th3);
                     let px = ax + cpL*Math.cos(th3+cpA), py = ay + cpL*Math.sin(th3+cpA);
 
