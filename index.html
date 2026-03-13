@@ -74,10 +74,10 @@
                     </div>
                 </div>
                 <div class="control-group" style="background: #333; padding: 10px; border-radius: 8px; margin-top: 10px;">
-                    <label style="color: #E0E0E0; text-align: center;">🔄 Assembly Mode (Coupler Curve)</label>
+                    <label style="color: #E0E0E0; text-align: center;">🔄 Assembly Mode</label>
                     <div style="display: flex; justify-content: space-around;">
                         <label><input type="radio" name="assembly-mode" value="1" checked onchange="calcTrace()"> Open (Cyan)</label>
-                        <label><input type="radio" name="assembly-mode" value="-1" onchange="calcTrace()"> Crossed (Magenta)</label>
+                        <label><input type="radio" name="assembly-mode" value="-1" onchange="calcTrace()"> Crossed (Orange)</label>
                     </div>
                 </div>
 
@@ -212,19 +212,81 @@
             return { l1: L4, l2: L1, l3: L2, l4: L3, id1: 4, id2: 1, id3: 2, id4: 3, shortestId };
         }
 
-        function getEvaluationAngles(l1, l2, l3, l4) {
-            let angles = [];
-            for (let t = 0; t <= Math.PI * 2; t += 0.02) angles.push(t);
-            let d_max = l3 + l4, d_min = Math.abs(l3 - l4);
-            let cos_max = (l1*l1 + l2*l2 - d_max*d_max) / (2*l1*l2);
-            let cos_min = (l1*l1 + l2*l2 - d_min*d_min) / (2*l1*l2);
-            if (cos_max >= -1 && cos_max <= 1) { let a = Math.acos(cos_max); angles.push(a, -a+Math.PI*2); }
-            if (cos_min >= -1 && cos_min <= 1) { let a = Math.acos(cos_min); angles.push(a, -a+Math.PI*2); }
-            return angles.sort((a,b) => a-b);
+        function checkValid(t, l1, l2, l3, l4) {
+            let ax = l2*Math.cos(t), ay = l2*Math.sin(t);
+            let dist = Math.hypot(l1-ax, -ay);
+            return dist <= l3+l4+1e-4 && dist >= Math.abs(l3-l4)-1e-4;
+        }
+
+        // Master function to isolate ONLY the trace sector reachable from the current animation angle
+        function getReachableAngles(currentTheta, l1, l2, l3, l4) {
+            let startTh = currentTheta;
+            
+            // If current angle is completely broken, try to find a valid starting point
+            if (!checkValid(startTh, l1, l2, l3, l4)) {
+                let found = false;
+                for(let off=0; off<=Math.PI; off+=0.02) {
+                    if (checkValid(startTh + off, l1, l2, l3, l4)) { startTh = startTh + off; found = true; break; }
+                    if (checkValid(startTh - off, l1, l2, l3, l4)) { startTh = startTh - off; found = true; break; }
+                }
+                if(!found) return { angles: [], newTheta: startTh }; // Impossible geometry
+            }
+            
+            let step = 0.02;
+            let forward = [], backward = [];
+            let fullRotation = false;
+            
+            // Walk forward
+            for(let off=0; off <= Math.PI*2; off+=step) {
+                let t = startTh + off;
+                if (checkValid(t, l1, l2, l3, l4)) {
+                    forward.push(t);
+                    if (off >= Math.PI*2 - step) fullRotation = true;
+                } else break;
+            }
+            
+            // Walk backward if it hits a wall
+            if (!fullRotation) {
+                for(let off=step; off <= Math.PI*2; off+=step) {
+                    let t = startTh - off;
+                    if (checkValid(t, l1, l2, l3, l4)) backward.push(t);
+                    else break;
+                }
+            }
+            
+            backward.reverse();
+            let reachable = backward.concat(forward);
+            
+            // Append exact analytic roots so the Open and Crossed curves meet perfectly at the boundaries
+            if (!fullRotation && reachable.length > 0) {
+                let d_max = l3 + l4, d_min = Math.abs(l3 - l4);
+                let cos_max = (l1*l1 + l2*l2 - d_max*d_max) / (2*l1*l2);
+                let cos_min = (l1*l1 + l2*l2 - d_min*d_min) / (2*l1*l2);
+                let roots = [];
+                if (cos_max >= -1 && cos_max <= 1) { let a = Math.acos(cos_max); roots.push(a, -a); }
+                if (cos_min >= -1 && cos_min <= 1) { let a = Math.acos(cos_min); roots.push(a, -a); }
+                
+                let tStart = reachable[0];
+                let tEnd = reachable[reachable.length-1];
+                let bestStart = null, minSDiff = 0.1;
+                let bestEnd = null, minEDiff = 0.1;
+                
+                for(let r of roots) {
+                    let dS = (r - tStart) % (2*Math.PI); if(dS > Math.PI) dS-=2*Math.PI; if(dS < -Math.PI) dS+=2*Math.PI;
+                    if(Math.abs(dS) < minSDiff) { minSDiff = Math.abs(dS); bestStart = tStart + dS; }
+                    
+                    let dE = (r - tEnd) % (2*Math.PI); if(dE > Math.PI) dE-=2*Math.PI; if(dE < -Math.PI) dE+=2*Math.PI;
+                    if(Math.abs(dE) < minEDiff) { minEDiff = Math.abs(dE); bestEnd = tEnd + dE; }
+                }
+                if (bestStart !== null) reachable.unshift(bestStart);
+                if (bestEnd !== null) reachable.push(bestEnd);
+            }
+            
+            return { angles: reachable, newTheta: startTh };
         }
 
         function calcTrace() {
-            tracePath = []; tracePathAlt = []; validAngles = [];
+            tracePath = []; tracePathAlt = [];
             let stat = document.getElementById('status');
 
             if (currentMech === 'fourbar') {
@@ -238,19 +300,17 @@
                 else if (L[0]+L[3] < L[1]+L[2]) { stat.innerText = "Status: Grashof (Continuous)"; stat.className = "status-good"; } 
                 else { stat.innerText = "Status: Non-Grashof (Rocker)"; stat.className = "status-bad"; }
 
-                let evalAngles = getEvaluationAngles(l1, l2, l3, l4);
+                let res = getReachableAngles(theta, l1, l2, l3, l4);
+                theta = res.newTheta; // Snap theta safely into bounds
 
-                for (let t of evalAngles) { 
+                for (let t of res.angles) { 
                     let ax = l2 * Math.cos(t), ay = l2 * Math.sin(t), dist = Math.hypot(l1 - ax, -ay);
-                    if (dist <= l3 + l4 + 1e-4 && dist >= Math.abs(l3 - l4) - 1e-4) {
-                        let p1 = Math.atan2(-ay, l1 - ax);
-                        let cos_val = Math.max(-1, Math.min(1, (l3*l3 + dist*dist - l4*l4) / (2 * l3 * dist)));
-                        let p2 = Math.acos(cos_val);
-                        
-                        let th3_1 = p1 - p2; tracePath.push({ x: ax + cpL * Math.cos(th3_1 + cpA), y: ay + cpL * Math.sin(th3_1 + cpA) });
-                        let th3_2 = p1 + p2; tracePathAlt.push({ x: ax + cpL * Math.cos(th3_2 + cpA), y: ay + cpL * Math.sin(th3_2 + cpA) });
-                        validAngles.push(t); 
-                    }
+                    let p1 = Math.atan2(-ay, l1 - ax);
+                    let cos_val = Math.max(-1, Math.min(1, (l3*l3 + dist*dist - l4*l4) / (2 * l3 * dist)));
+                    let p2 = Math.acos(cos_val);
+                    
+                    let th3_1 = p1 - p2; tracePath.push({ x: ax + cpL * Math.cos(th3_1 + cpA), y: ay + cpL * Math.sin(th3_1 + cpA) });
+                    let th3_2 = p1 + p2; tracePathAlt.push({ x: ax + cpL * Math.cos(th3_2 + cpA), y: ay + cpL * Math.sin(th3_2 + cpA) });
                 }
             } else {
                 let r = parseFloat(document.getElementById('R').value), l = parseFloat(document.getElementById('L-sl').value);
@@ -263,7 +323,7 @@
                         else if (inv === "2") { let d = r*Math.cos(t) + Math.sqrt(l*l - r*r*Math.pow(Math.sin(t),2)); px = d*Math.cos(t); py = d*Math.sin(t); }
                         else if (inv === "3") { px = r * Math.cos(t); py = r * Math.sin(t); }
                         else { let d = -r*Math.cos(t) + Math.sqrt(l*l - r*r*Math.pow(Math.sin(t),2)); px = d + r*Math.cos(t); py = r*Math.sin(t); }
-                        tracePath.push({x: px, y: py}); validAngles.push(t); 
+                        tracePath.push({x: px, y: py});
                     }
                 }
             }
@@ -437,12 +497,12 @@
                 drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pA.x,pA.y, "red", "aA");
                 drawMappedArrow(accCtx, mAcc, pA.x,pA.y, pB.x,pB.y, "green", "aBA");
                 drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pB.x,pB.y, "blue", "aB");
-                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pAn.x,pAn.y, "red", "aA^n", [6,4]);
-                drawMappedArrow(accCtx, mAcc, pAn.x,pAn.y, pA.x,pA.y, "red", "aA^t", [2,3]);
-                drawMappedArrow(accCtx, mAcc, pA.x,pA.y, pBAn.x,pBAn.y, "green", "aBA^n", [6,4]);
-                drawMappedArrow(accCtx, mAcc, pBAn.x,pBAn.y, pB.x,pB.y, "green", "aBA^t", [2,3]);
-                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pBn.x,pBn.y, "blue", "aB^n", [6,4]);
-                drawMappedArrow(accCtx, mAcc, pBn.x,pBn.y, pB.x,pB.y, "blue", "aB^t", [2,3]);
+                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pAn.x,pAn.y, "red", "aA_n", [6,4]);
+                drawMappedArrow(accCtx, mAcc, pAn.x,pAn.y, pA.x,pA.y, "red", "aA_t", [2,3]);
+                drawMappedArrow(accCtx, mAcc, pA.x,pA.y, pBAn.x,pBAn.y, "green", "aBA_n", [6,4]);
+                drawMappedArrow(accCtx, mAcc, pBAn.x,pBAn.y, pB.x,pB.y, "green", "aBA_t", [2,3]);
+                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pBn.x,pBn.y, "blue", "aB_n", [6,4]);
+                drawMappedArrow(accCtx, mAcc, pBn.x,pBn.y, pB.x,pB.y, "blue", "aB_t", [2,3]);
 
             } else {
                 let r = parseFloat(document.getElementById('R').value), l = parseFloat(document.getElementById('L-sl').value);
@@ -477,10 +537,10 @@
                 drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pA.x,pA.y, "red", "aA");
                 drawMappedArrow(accCtx, mAcc, pA.x,pA.y, pB.x,pB.y, "green", "aBA");
                 drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pB.x,pB.y, "blue", "aB");
-                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pAn.x,pAn.y, "red", "aA^n", [6,4]);
-                drawMappedArrow(accCtx, mAcc, pAn.x,pAn.y, pA.x,pA.y, "red", "aA^t", [2,3]);
-                drawMappedArrow(accCtx, mAcc, pA.x,pA.y, pBAn.x,pBAn.y, "green", "aBA^n", [6,4]);
-                drawMappedArrow(accCtx, mAcc, pBAn.x,pBAn.y, pB.x,pB.y, "green", "aBA^t", [2,3]);
+                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pAn.x,pAn.y, "red", "aA_n", [6,4]);
+                drawMappedArrow(accCtx, mAcc, pAn.x,pAn.y, pA.x,pA.y, "red", "aA_t", [2,3]);
+                drawMappedArrow(accCtx, mAcc, pA.x,pA.y, pBAn.x,pBAn.y, "green", "aBA_n", [6,4]);
+                drawMappedArrow(accCtx, mAcc, pBAn.x,pBAn.y, pB.x,pB.y, "green", "aBA_t", [2,3]);
             }
         }
 
@@ -501,18 +561,16 @@
             if(currentMech === 'fourbar') {
                 let { l1, l2, l3, l4 } = getMappedLengths(); 
                 let cpL = parseFloat(document.getElementById('CpL').value), cpA = parseFloat(document.getElementById('CpA').value)*Math.PI/180;
-                let evalAngles = getEvaluationAngles(l1, l2, l3, l4);
+                let res = getReachableAngles(theta, l1, l2, l3, l4);
                 
-                for (let t of evalAngles) {
+                for (let t of res.angles) {
                     let ax=l2*Math.cos(t), ay=l2*Math.sin(t), dist=Math.hypot(l1-ax,-ay);
-                    if(dist<=l3+l4+1e-3 && dist>=Math.abs(l3-l4)-1e-3) {
-                        let p1=Math.atan2(-ay,l1-ax);
-                        let cos_val = Math.max(-1, Math.min(1, (l3*l3+dist*dist-l4*l4)/(2*l3*dist)));
-                        let p2 = Math.acos(cos_val);
-                        px.push(ax+cpL*Math.cos(p1-p2+cpA)); py.push(ay+cpL*Math.sin(p1-p2+cpA));
-                        pxa.push(ax+cpL*Math.cos(p1+p2+cpA)); pya.push(ay+cpL*Math.sin(p1+p2+cpA));
-                        xData.push(t*180/Math.PI); 
-                    }
+                    let p1=Math.atan2(-ay,l1-ax);
+                    let cos_val = Math.max(-1, Math.min(1, (l3*l3+dist*dist-l4*l4)/(2*l3*dist)));
+                    let p2 = Math.acos(cos_val);
+                    px.push(ax+cpL*Math.cos(p1-p2+cpA)); py.push(ay+cpL*Math.sin(p1-p2+cpA));
+                    pxa.push(ax+cpL*Math.cos(p1+p2+cpA)); pya.push(ay+cpL*Math.sin(p1+p2+cpA));
+                    xData.push(t*180/Math.PI); 
                 }
                 let mode = parseInt(document.querySelector('input[name="assembly-mode"]:checked').value);
                 let sel_px = mode === 1 ? px : pxa;
@@ -527,7 +585,7 @@
                 document.getElementById('graph-trace').style.display = "block";
                 Plotly.newPlot('graph-trace', [
                     { x: px, y: py, mode: 'lines', name: 'Open (Cyan)', line: {color: 'cyan', width: 2} },
-                    { x: pxa, y: pya, mode: 'lines', name: 'Crossed (Mag)', line: {color: 'magenta', width: 2, dash: 'dot'} }
+                    { x: pxa, y: pya, mode: 'lines', name: 'Crossed (Orange)', line: {color: '#FF9800', width: 2, dash: 'dot'} }
                 ], { title: "Coupler Curve", margin: {t:40, b:40, l:50, r:20}, plot_bgcolor: "#f8f9fa", yaxis:{scaleanchor:'x', scaleratio:1} });
 
             } else {
@@ -574,7 +632,7 @@
                 let { l1, l2, l3, l4 } = getMappedLengths();
                 maxDim = l1 + l2 + l3 + l4;
             } else {
-                maxDim = (parseFloat(document.getElementById('R').value) + parseFloat(document.getElementById('L-sl').value)) * 2;
+                maxDim = (parseFloat(document.getElementById('R').value) + parseFloat(document.getElementById('L-sl').value)) * 2.5;
             }
             
             let baseScale = (Math.min(canvas.width, canvas.height) / (maxDim * 1.1));
@@ -599,7 +657,7 @@
                     if(i===0 || gap > maxDim/2) ctx.moveTo(tracePathAlt[i].x, tracePathAlt[i].y);
                     else ctx.lineTo(tracePathAlt[i].x, tracePathAlt[i].y);
                 } 
-                ctx.strokeStyle='rgba(255, 0, 255, 0.5)'; ctx.setLineDash([2/currentScale, 4/currentScale]); ctx.lineWidth=2/currentScale; ctx.stroke(); ctx.setLineDash([]);
+                ctx.strokeStyle='rgba(255, 152, 0, 0.8)'; ctx.setLineDash([2/currentScale, 4/currentScale]); ctx.lineWidth=2/currentScale; ctx.stroke(); ctx.setLineDash([]);
             }
 
             let speed = parseFloat(document.getElementById('speed').value) * 0.02;
@@ -609,27 +667,16 @@
                 let cpL = parseFloat(document.getElementById('CpL').value), cpA = parseFloat(document.getElementById('CpA').value)*Math.PI/180;
                 let mode = parseInt(document.querySelector('input[name="assembly-mode"]:checked').value);
 
-                let currentDist = Math.hypot(l1 - l2 * Math.cos(theta), -l2 * Math.sin(theta));
-                if (currentDist > l3 + l4 + 1e-3 || currentDist < Math.abs(l3 - l4) - 1e-3) {
-                    if (validAngles.length > 0) theta = validAngles[Math.floor(validAngles.length / 2)];
-                }
-
                 let nextTheta = theta + (speed * direction);
-                let nAx = l2*Math.cos(nextTheta), nAy = l2*Math.sin(nextTheta);
-                let nDist = Math.hypot(l1 - nAx, -nAy);
-                
-                if (nDist > l3 + l4 || nDist < Math.abs(l3 - l4)) {
+                if (!checkValid(nextTheta, l1, l2, l3, l4)) {
                     direction *= -1; 
                     nextTheta = theta + (speed * direction);
-                    let nnAx = l2*Math.cos(nextTheta), nnAy = l2*Math.sin(nextTheta);
-                    if (Math.hypot(l1 - nnAx, -nnAy) > l3 + l4 || Math.hypot(l1 - nnAx, -nnAy) < Math.abs(l3 - l4)) {
-                        nextTheta = theta; 
-                    }
+                    if (!checkValid(nextTheta, l1, l2, l3, l4)) nextTheta = theta; 
                 }
                 theta = nextTheta;
 
                 let ax = l2*Math.cos(theta), ay = l2*Math.sin(theta), dist = Math.hypot(l1-ax, -ay);
-                if (dist <= l3+l4+1e-3 && dist >= Math.abs(l3-l4)-1e-3) {
+                if (checkValid(theta, l1, l2, l3, l4)) {
                     let p1 = Math.atan2(-ay, l1-ax);
                     let cos_val = Math.max(-1, Math.min(1, (l3*l3+dist*dist-l4*l4)/(2*l3*dist)));
                     let p2 = Math.acos(cos_val);
@@ -669,29 +716,18 @@
                 let tx1 = p12.x - (l+r)*1.5*Math.cos(ta), ty1 = p12.y - (l+r)*1.5*Math.sin(ta);
                 let tx2 = p12.x + (l+r)*1.5*Math.cos(ta), ty2 = p12.y + (l+r)*1.5*Math.sin(ta);
 
-                // Specific track bounds for Inversion 3 so it doesn't overshoot
                 if (inv === "3") {
-                    let tL_start = -2; 
-                    let tL_end = Math.hypot(p34.x - p12.x, p34.y - p12.y) + r + 2; 
-                    tx1 = p34.x + tL_start * Math.cos(ta); ty1 = p34.y + tL_start * Math.sin(ta);
-                    tx2 = p34.x + tL_end * Math.cos(ta); ty2 = p34.y + tL_end * Math.sin(ta);
+                    let trackLength = Math.hypot(p34.x - p12.x, p34.y - p12.y) + r*1.5; 
+                    tx1 = p34.x - (r*0.5) * Math.cos(ta); ty1 = p34.y - (r*0.5) * Math.sin(ta);
+                    tx2 = p34.x + trackLength * Math.cos(ta); ty2 = p34.y + trackLength * Math.sin(ta);
                 }
 
-                // Draw Track (Grey)
-                if(inv==="1") drawLine(tx1,ty1,tx2,ty2,'rgba(255,235,59,0.6)', 16); 
-                drawLine(tx1,ty1,tx2,ty2,'#9E9E9E', 8);
-                
-                // Draw Crank (Red)
-                if(inv==="2") drawLine(p12.x,p12.y,p23.x,p23.y,'rgba(255,235,59,0.6)', 16); 
-                drawLine(p12.x,p12.y,p23.x,p23.y,'#FF5252', 8);
-                
-                // Draw Rod (Green)
-                if(inv==="3") drawLine(p23.x,p23.y,p34.x,p34.y,'rgba(255,235,59,0.6)', 16); 
-                drawLine(p23.x,p23.y,p34.x,p34.y,'#4CAF50', 8);
+                if(inv==="1") drawLine(tx1,ty1,tx2,ty2,'rgba(255,235,59,0.6)', 16); drawLine(tx1,ty1,tx2,ty2,'#9E9E9E', 8);
+                if(inv==="2") drawLine(p12.x,p12.y,p23.x,p23.y,'rgba(255,235,59,0.6)', 16); drawLine(p12.x,p12.y,p23.x,p23.y,'#FF5252', 8);
+                if(inv==="3") drawLine(p23.x,p23.y,p34.x,p34.y,'rgba(255,235,59,0.6)', 16); drawLine(p23.x,p23.y,p34.x,p34.y,'#4CAF50', 8);
 
-                // Dynamic Slider Scale logic
-                let bw = 35 / currentScale;
-                let bh = 20 / currentScale;
+                let bw = (r * 0.8) + 10;
+                let bh = (r * 0.5) + 5;
 
                 ctx.save(); ctx.translate(p34.x, p34.y); ctx.rotate(ta);
                 if(inv==="4"){ 
