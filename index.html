@@ -74,10 +74,10 @@
                     </div>
                 </div>
                 <div class="control-group" style="background: #333; padding: 10px; border-radius: 8px; margin-top: 10px;">
-                    <label style="color: #E0E0E0; text-align: center;">🔄 Assembly Mode</label>
+                    <label style="color: #E0E0E0; text-align: center;">🔄 Assembly Mode (Coupler Curve)</label>
                     <div style="display: flex; justify-content: space-around;">
-                        <label><input type="radio" name="assembly-mode" value="1" checked onchange="calcTrace()"> Open (Cyan)</label>
-                        <label><input type="radio" name="assembly-mode" value="-1" onchange="calcTrace()"> Crossed (Orange)</label>
+                        <label><input type="radio" name="assembly-mode" value="1" checked onchange="calcTrace()"> Crossed (Cyan)</label>
+                        <label><input type="radio" name="assembly-mode" value="-1" onchange="calcTrace()"> Open (Orange)</label>
                     </div>
                 </div>
 
@@ -212,76 +212,24 @@
             return { l1: L4, l2: L1, l3: L2, l4: L3, id1: 4, id2: 1, id3: 2, id4: 3, shortestId };
         }
 
+        function getEvaluationAngles(l1, l2, l3, l4) {
+            let angles = [];
+            for (let t = 0; t <= Math.PI * 2; t += 0.02) angles.push(t);
+            let d_max = l3 + l4, d_min = Math.abs(l3 - l4);
+            let cos_max = (l1*l1 + l2*l2 - d_max*d_max) / (2*l1*l2);
+            let cos_min = (l1*l1 + l2*l2 - d_min*d_min) / (2*l1*l2);
+            if (cos_max >= -1 && cos_max <= 1) { let a = Math.acos(cos_max); angles.push(a, -a+Math.PI*2); }
+            if (cos_min >= -1 && cos_min <= 1) { let a = Math.acos(cos_min); angles.push(a, -a+Math.PI*2); }
+            return angles.sort((a,b) => a-b);
+        }
+
         function checkValid(t, l1, l2, l3, l4) {
-            let ax = l2*Math.cos(t), ay = l2*Math.sin(t);
-            let dist = Math.hypot(l1-ax, -ay);
+            let ax = l2*Math.cos(t), ay = l2*Math.sin(t), dist = Math.hypot(l1-ax, -ay);
             return dist <= l3+l4+1e-4 && dist >= Math.abs(l3-l4)-1e-4;
         }
 
-        function getReachableAngles(currentTheta, l1, l2, l3, l4) {
-            let startTh = currentTheta;
-            
-            if (!checkValid(startTh, l1, l2, l3, l4)) {
-                let found = false;
-                for(let off=0; off<=Math.PI; off+=0.02) {
-                    if (checkValid(startTh + off, l1, l2, l3, l4)) { startTh = startTh + off; found = true; break; }
-                    if (checkValid(startTh - off, l1, l2, l3, l4)) { startTh = startTh - off; found = true; break; }
-                }
-                if(!found) return { angles: [], newTheta: startTh }; 
-            }
-            
-            let step = 0.02;
-            let forward = [], backward = [];
-            let fullRotation = false;
-            
-            for(let off=0; off <= Math.PI*2; off+=step) {
-                let t = startTh + off;
-                if (checkValid(t, l1, l2, l3, l4)) {
-                    forward.push(t);
-                    if (off >= Math.PI*2 - step) fullRotation = true;
-                } else break;
-            }
-            
-            if (!fullRotation) {
-                for(let off=step; off <= Math.PI*2; off+=step) {
-                    let t = startTh - off;
-                    if (checkValid(t, l1, l2, l3, l4)) backward.push(t);
-                    else break;
-                }
-            }
-            
-            backward.reverse();
-            let reachable = backward.concat(forward);
-            
-            if (!fullRotation && reachable.length > 0) {
-                let d_max = l3 + l4, d_min = Math.abs(l3 - l4);
-                let cos_max = (l1*l1 + l2*l2 - d_max*d_max) / (2*l1*l2);
-                let cos_min = (l1*l1 + l2*l2 - d_min*d_min) / (2*l1*l2);
-                let roots = [];
-                if (cos_max >= -1 && cos_max <= 1) { let a = Math.acos(cos_max); roots.push(a, -a); }
-                if (cos_min >= -1 && cos_min <= 1) { let a = Math.acos(cos_min); roots.push(a, -a); }
-                
-                let tStart = reachable[0];
-                let tEnd = reachable[reachable.length-1];
-                let bestStart = null, minSDiff = 0.1;
-                let bestEnd = null, minEDiff = 0.1;
-                
-                for(let r of roots) {
-                    let dS = (r - tStart) % (2*Math.PI); if(dS > Math.PI) dS-=2*Math.PI; if(dS < -Math.PI) dS+=2*Math.PI;
-                    if(Math.abs(dS) < minSDiff) { minSDiff = Math.abs(dS); bestStart = tStart + dS; }
-                    
-                    let dE = (r - tEnd) % (2*Math.PI); if(dE > Math.PI) dE-=2*Math.PI; if(dE < -Math.PI) dE+=2*Math.PI;
-                    if(Math.abs(dE) < minEDiff) { minEDiff = Math.abs(dE); bestEnd = tEnd + dE; }
-                }
-                if (bestStart !== null) reachable.unshift(bestStart);
-                if (bestEnd !== null) reachable.push(bestEnd);
-            }
-            
-            return { angles: reachable, newTheta: startTh };
-        }
-
         function calcTrace() {
-            tracePath = []; tracePathAlt = [];
+            tracePath = []; tracePathAlt = []; validAngles = [];
             let stat = document.getElementById('status');
 
             if (currentMech === 'fourbar') {
@@ -295,17 +243,19 @@
                 else if (L[0]+L[3] < L[1]+L[2]) { stat.innerText = "Status: Grashof (Continuous)"; stat.className = "status-good"; } 
                 else { stat.innerText = "Status: Non-Grashof (Rocker)"; stat.className = "status-bad"; }
 
-                let res = getReachableAngles(theta, l1, l2, l3, l4);
-                theta = res.newTheta; 
+                let evalAngles = getEvaluationAngles(l1, l2, l3, l4);
 
-                for (let t of res.angles) { 
+                for (let t of evalAngles) { 
                     let ax = l2 * Math.cos(t), ay = l2 * Math.sin(t), dist = Math.hypot(l1 - ax, -ay);
-                    let p1 = Math.atan2(-ay, l1 - ax);
-                    let cos_val = Math.max(-1, Math.min(1, (l3*l3 + dist*dist - l4*l4) / (2 * l3 * dist)));
-                    let p2 = Math.acos(cos_val);
-                    
-                    let th3_1 = p1 - p2; tracePath.push({ x: ax + cpL * Math.cos(th3_1 + cpA), y: ay + cpL * Math.sin(th3_1 + cpA) });
-                    let th3_2 = p1 + p2; tracePathAlt.push({ x: ax + cpL * Math.cos(th3_2 + cpA), y: ay + cpL * Math.sin(th3_2 + cpA) });
+                    if (dist <= l3 + l4 + 1e-4 && dist >= Math.abs(l3 - l4) - 1e-4) {
+                        let p1 = Math.atan2(-ay, l1 - ax);
+                        let cos_val = Math.max(-1, Math.min(1, (l3*l3 + dist*dist - l4*l4) / (2 * l3 * dist)));
+                        let p2 = Math.acos(cos_val);
+                        
+                        let th3_1 = p1 - p2; tracePath.push({ x: ax + cpL * Math.cos(th3_1 + cpA), y: ay + cpL * Math.sin(th3_1 + cpA) });
+                        let th3_2 = p1 + p2; tracePathAlt.push({ x: ax + cpL * Math.cos(th3_2 + cpA), y: ay + cpL * Math.sin(th3_2 + cpA) });
+                        validAngles.push(t); 
+                    }
                 }
             } else {
                 let r = parseFloat(document.getElementById('R').value), l = parseFloat(document.getElementById('L-sl').value);
@@ -318,7 +268,7 @@
                         else if (inv === "2") { let d = r*Math.cos(t) + Math.sqrt(l*l - r*r*Math.pow(Math.sin(t),2)); px = d*Math.cos(t); py = d*Math.sin(t); }
                         else if (inv === "3") { px = r * Math.cos(t); py = r * Math.sin(t); }
                         else { let d = -r*Math.cos(t) + Math.sqrt(l*l - r*r*Math.pow(Math.sin(t),2)); px = d + r*Math.cos(t); py = r*Math.sin(t); }
-                        tracePath.push({x: px, y: py});
+                        tracePath.push({x: px, y: py}); validAngles.push(t); 
                     }
                 }
             }
@@ -399,161 +349,208 @@
 
         function drawMappedArrow(ctx, map, x1, y1, x2, y2, color, label, dash = []) {
             let px1 = map.mapX(x1), py1 = map.mapY(y1), px2 = map.mapX(x2), py2 = map.mapY(y2);
-            let dx = px2 - px1, dy = py2 - py1;
-            let len = Math.hypot(dx, dy);
-            
-            ctx.font = "bold 13px Arial"; 
+            let dx = px2 - px1, dy = py2 - py1, len = Math.hypot(dx, dy);
+
+            ctx.font = "bold 12px Arial";
             ctx.textAlign = "center"; ctx.textBaseline = "middle";
             let tw = ctx.measureText(label).width;
-            
-            if(len < 3) {
+
+            if (len < 3) {
                 ctx.beginPath(); ctx.arc(px1, py1, 4, 0, Math.PI*2); ctx.fillStyle = color; ctx.fill();
                 ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.fillRect(px1+10 - tw/2, py1+10 - 8, tw+8, 16);
                 ctx.fillStyle = "#222"; ctx.fillText(label, px1+10, py1+10);
-                return; 
+                return;
             }
 
-            let angle = Math.atan2(dy, dx), headlen = 12; 
+            let angle = Math.atan2(dy, dx), headlen = 12;
             ctx.beginPath(); ctx.moveTo(px1, py1); ctx.lineTo(px2, py2);
-            ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.setLineDash(dash); ctx.stroke(); ctx.setLineDash([]); 
-            
+            ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.setLineDash(dash); ctx.stroke(); ctx.setLineDash([]);
+
             ctx.beginPath(); ctx.moveTo(px2, py2);
             ctx.lineTo(px2 - headlen*Math.cos(angle - Math.PI/6), py2 - headlen*Math.sin(angle - Math.PI/6));
             ctx.lineTo(px2 - headlen*Math.cos(angle + Math.PI/6), py2 - headlen*Math.sin(angle + Math.PI/6));
             ctx.lineTo(px2, py2); ctx.fillStyle = color; ctx.fill();
-            
-            let nx = -dy / len, ny = dx / len;
-            let offset = 20; 
-            let tx = px1 + dx*0.5 + nx*offset, ty = py1 + dy*0.5 + ny*offset;
-            
-            ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.fillRect(tx - tw/2 - 4, ty - 10, tw+8, 20);
-            ctx.fillStyle = "#222"; ctx.fillText(label, tx, ty);
+
+            // Perpendicular offset so label sits beside arrow, not on top of it
+            let nx = -dy / len, ny = dx / len, offset = 18;
+            let tx = (px1+px2)*0.5 + nx*offset, ty = (py1+py2)*0.5 + ny*offset;
+            ctx.fillStyle = "rgba(255,255,255,0.88)"; ctx.fillRect(tx - tw/2 - 4, ty - 9, tw+8, 18);
+            ctx.fillStyle = "#111"; ctx.fillText(label, tx, ty);
         }
 
         function openVectorModal() {
-            if(document.getElementById('status').innerText.includes("Error") || document.getElementById('status').innerText.includes("Folded")) return alert("Mechanism geometry invalid.");
-            document.getElementById('vector-modal').style.display = 'flex'; resize(); 
-            
-            let th2 = parseFloat(document.getElementById('in_th2').value) * Math.PI/180;
-            let w2 = parseFloat(document.getElementById('in_w2').value);
-            let a2 = parseFloat(document.getElementById('in_a2').value);
-            
+            if (document.getElementById('status').innerText.includes("Error") || document.getElementById('status').innerText.includes("Folded"))
+                return alert("Mechanism geometry invalid.");
+            document.getElementById('vector-modal').style.display = 'flex'; resize();
+
+            let th2 = parseFloat(document.getElementById('in_th2').value) * Math.PI / 180;
+            let w2  = parseFloat(document.getElementById('in_w2').value);
+            let a2  = parseFloat(document.getElementById('in_a2').value);
+
             if (currentMech === 'fourbar') {
-                let { l1, l2, l3, l4 } = getMappedLengths(); 
+                let { l1, l2, l3, l4 } = getMappedLengths();
                 let mode = parseInt(document.querySelector('input[name="assembly-mode"]:checked').value);
-                
-                let ax = l2*Math.cos(th2), ay = l2*Math.sin(th2), dist = Math.hypot(l1-ax, -ay);
-                if (dist > l3+l4 || dist < Math.abs(l3-l4)) return alert("Cannot assemble at this specific angle. Turn the crank.");
-                
+
+                let ax = l2*Math.cos(th2), ay = l2*Math.sin(th2);
+                let dist = Math.hypot(l1 - ax, -ay);
+                if (dist > l3+l4 || dist < Math.abs(l3-l4)) return alert("Cannot assemble at this angle.");
+
                 let p1 = Math.atan2(-ay, l1-ax);
-                let cos_val = Math.max(-1, Math.min(1, (l3*l3 + dist*dist - l4*l4)/(2*l3*dist)));
+                let cos_val = Math.max(-1, Math.min(1, (l3*l3 + dist*dist - l4*l4) / (2*l3*dist)));
                 let p2 = Math.acos(cos_val);
-                let th3 = p1 - mode * p2; 
-                let bx = ax + l3*Math.cos(th3), by = ay + l3*Math.sin(th3), th4 = Math.atan2(by, bx-l1);
+                let th3 = p1 - mode*p2;
+                let bx = ax + l3*Math.cos(th3), by = ay + l3*Math.sin(th3);
+                let th4 = Math.atan2(by, bx - l1);
 
-                let mPos = createCoordinateMapper(posCanvas.width, posCanvas.height, [{x:0,y:0},{x:l1,y:0},{x:ax,y:ay},{x:bx,y:by}]);
+                // ── POSITION DIAGRAM: closed vector loop O→A→B→O ──
+                let mPos = createCoordinateMapper(posCanvas.width, posCanvas.height,
+                    [{x:0,y:0},{x:ax,y:ay},{x:bx,y:by},{x:l1,y:0}]);
                 drawSmartGrid(posCtx, posCanvas.width, posCanvas.height, mPos);
-                drawMappedArrow(posCtx, mPos, 0,0, l1,0, "#9E9E9E", "r1");
-                drawMappedArrow(posCtx, mPos, 0,0, ax,ay, "#FF5252", "r2");
-                drawMappedArrow(posCtx, mPos, ax,ay, bx,by, "#4CAF50", "r3");
-                drawMappedArrow(posCtx, mPos, l1,0, bx,by, "#2196F3", "r4");
+                drawMappedArrow(posCtx, mPos,  0, 0, ax, ay, "#FF5252", "r₂");     // crank
+                drawMappedArrow(posCtx, mPos, ax, ay, bx, by, "#4CAF50", "r₃");    // coupler
+                drawMappedArrow(posCtx, mPos, l1, 0, bx, by, "#2196F3", "r₄");     // rocker (B←D)
+                drawMappedArrow(posCtx, mPos,  0, 0, l1,  0, "#9E9E9E", "r₁");     // ground
 
-                let det = l3*l4*Math.sin(th3-th4);
-                let w3 = (l2*w2*Math.sin(th4-th2))/det, w4 = (l2*w2*Math.sin(th3-th2))/det;
-                let vA = {x: -l2*w2*Math.sin(th2), y: l2*w2*Math.cos(th2)};
-                let vB = {x: -l4*w4*Math.sin(th4), y: l4*w4*Math.cos(th4)};
-                let mVel = createCoordinateMapper(velCanvas.width, velCanvas.height, [{x:0,y:0}, vA, vB]);
-                drawSmartGrid(velCtx, velCanvas.width, velCanvas.height, mVel);
-                drawMappedArrow(velCtx, mVel, 0,0, vA.x,vA.y, "red", "vA");
-                drawMappedArrow(velCtx, mVel, vA.x,vA.y, vB.x,vB.y, "green", "vBA");
-                drawMappedArrow(velCtx, mVel, 0,0, vB.x,vB.y, "blue", "vB");
-
-                let aA_n = {x: -l2*w2*w2*Math.cos(th2), y: -l2*w2*w2*Math.sin(th2)};
-                let aA_t = {x: -l2*a2*Math.sin(th2), y: l2*a2*Math.cos(th2)};
-                let aA = {x: aA_n.x+aA_t.x, y: aA_n.y+aA_t.y};
-
-                let aBA_n = {x: -l3*w3*w3*Math.cos(th3), y: -l3*w3*w3*Math.sin(th3)};
-                let aB_n = {x: -l4*w4*w4*Math.cos(th4), y: -l4*w4*w4*Math.sin(th4)};
-
-                let rhs_x = aA.x + aBA_n.x - aB_n.x, rhs_y = aA.y + aBA_n.y - aB_n.y;
-                let a3 = (rhs_x*Math.cos(th4+Math.PI/2) + rhs_y*Math.sin(th4+Math.PI/2)) / Math.sin(th3-th4) / l3;
-                let a4 = (rhs_x*Math.cos(th3+Math.PI/2) + rhs_y*Math.sin(th3+Math.PI/2)) / Math.sin(th3-th4) / l4;
-
-                let aBA_t = {x: -l3*a3*Math.sin(th3), y: l3*a3*Math.cos(th3)};
-                let aB_t = {x: -l4*a4*Math.sin(th4), y: l4*a4*Math.cos(th4)};
+                // ── VELOCITY ANALYSIS ──
+                let sinDiff = Math.sin(th3 - th4);
+                let w3 = 0, w4 = 0;
+                if (Math.abs(sinDiff) > 1e-6) {
+                    w3 = (l2*w2*Math.sin(th4-th2)) / (l3*sinDiff);
+                    w4 = (l2*w2*Math.sin(th3-th2)) / (l4*sinDiff);
+                }
                 
-                let aBA = {x: aBA_n.x+aBA_t.x, y: aBA_n.y+aBA_t.y};
-                let aB = {x: aB_n.x+aB_t.x, y: aB_n.y+aB_t.y};
+                // vA = velocity of A (crank pin)
+                let vA  = { x: -l2*w2*Math.sin(th2),  y:  l2*w2*Math.cos(th2) };
+                // vBA = velocity of B relative to A
+                let vBA = { x: -l3*w3*Math.sin(th3),  y:  l3*w3*Math.cos(th3) };
+                // vB = vA + vBA  (tip-to-tip)
+                let vB  = { x: vA.x + vBA.x,          y:  vA.y + vBA.y };
 
-                let pO = {x:0,y:0}, pAn = aA_n, pA = aA, pBAn = {x:aA.x+aBA_n.x, y:aA.y+aBA_n.y}, pB = aB, pBn = aB_n;
-                let mAcc = createCoordinateMapper(accCanvas.width, accCanvas.height, [pO, pAn, pA, pBAn, pB, pBn]);
+                // Velocity polygon: O→vA→vB (with vBA as the bridge), vB also checked vs -l4*w4
+                let mVel = createCoordinateMapper(velCanvas.width, velCanvas.height,
+                    [{x:0,y:0}, vA, vB]);
+                drawSmartGrid(velCtx, velCanvas.width, velCanvas.height, mVel);
+                drawMappedArrow(velCtx, mVel,    0,    0, vA.x, vA.y, "#FF5252", "vA");
+                drawMappedArrow(velCtx, mVel, vA.x, vA.y, vB.x, vB.y, "#4CAF50", "vBA");
+                drawMappedArrow(velCtx, mVel,    0,    0, vB.x, vB.y, "#2196F3", "vB");
+
+                // ── ACCELERATION ANALYSIS ──
+                // Normal & tangential components of A
+                let aA_n = { x: -l2*w2*w2*Math.cos(th2), y: -l2*w2*w2*Math.sin(th2) };
+                let aA_t = { x: -l2*a2 *Math.sin(th2),   y:  l2*a2 *Math.cos(th2)   };
+                let aA   = { x: aA_n.x + aA_t.x,         y:  aA_n.y + aA_t.y        };
+
+                // Normal components of B relative to A, and of B
+                let aBA_n = { x: -l3*w3*w3*Math.cos(th3), y: -l3*w3*w3*Math.sin(th3) };
+                let aB_n  = { x: -l4*w4*w4*Math.cos(th4), y: -l4*w4*w4*Math.sin(th4) };
+
+                // Solve for a3, a4
+                let rhs_x = aA.x + aBA_n.x - aB_n.x;
+                let rhs_y = aA.y + aBA_n.y - aB_n.y;
+                let a3 = 0, a4 = 0;
+                
+                if (Math.abs(sinDiff) > 1e-6) {
+                    a3 = (rhs_x*Math.cos(th4) + rhs_y*Math.sin(th4)) / (l3*sinDiff);
+                    a4 = (rhs_x*Math.cos(th3) + rhs_y*Math.sin(th3)) / (l4*sinDiff);
+                }
+                
+                let aBA_t = { x: -l3*a3*Math.sin(th3), y: l3*a3*Math.cos(th3) };
+                let aBA   = { x: aBA_n.x + aBA_t.x,    y: aBA_n.y + aBA_t.y   };
+                let aB    = { x: aA.x + aBA.x,         y: aA.y + aBA.y        };  // tip-to-tip
+
+                // Polygon chain: O → aA_n → aA → (aA+aBA_n) → aB, plus closing vB from origin
+                let p_aBA_n = { x: aA.x + aBA_n.x, y: aA.y + aBA_n.y };
+                let mAcc = createCoordinateMapper(accCanvas.width, accCanvas.height,
+                    [{x:0,y:0}, aA_n, aA, p_aBA_n, aB, aB_n]);
                 drawSmartGrid(accCtx, accCanvas.width, accCanvas.height, mAcc);
 
-                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pA.x,pA.y, "red", "aA");
-                drawMappedArrow(accCtx, mAcc, pA.x,pA.y, pB.x,pB.y, "green", "aBA");
-                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pB.x,pB.y, "blue", "aB");
-                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pAn.x,pAn.y, "red", "aA_n", [6,4]);
-                drawMappedArrow(accCtx, mAcc, pAn.x,pAn.y, pA.x,pA.y, "red", "aA_t", [2,3]);
-                drawMappedArrow(accCtx, mAcc, pA.x,pA.y, pBAn.x,pBAn.y, "green", "aBA_n", [6,4]);
-                drawMappedArrow(accCtx, mAcc, pBAn.x,pBAn.y, pB.x,pB.y, "green", "aBA_t", [2,3]);
-                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pBn.x,pBn.y, "blue", "aB_n", [6,4]);
-                drawMappedArrow(accCtx, mAcc, pBn.x,pBn.y, pB.x,pB.y, "blue", "aB_t", [2,3]);
+                // Main resultant vectors
+                drawMappedArrow(accCtx, mAcc, 0, 0, aA.x, aA.y, "#FF5252", "aA");
+                drawMappedArrow(accCtx, mAcc, aA.x, aA.y, aB.x, aB.y, "#4CAF50", "aBA");
+                drawMappedArrow(accCtx, mAcc, 0, 0, aB.x, aB.y, "#2196F3", "aB");
+                
+                // Sub-components (dashed)
+                drawMappedArrow(accCtx, mAcc, 0, 0, aA_n.x, aA_n.y, "#FF5252", "aAⁿ", [6,4]);
+                drawMappedArrow(accCtx, mAcc, aA_n.x, aA_n.y, aA.x, aA.y, "#FF5252", "aAᵗ", [2,3]);
+                drawMappedArrow(accCtx, mAcc, aA.x, aA.y, p_aBA_n.x, p_aBA_n.y, "#4CAF50", "aBAⁿ", [6,4]);
+                drawMappedArrow(accCtx, mAcc, p_aBA_n.x, p_aBA_n.y, aB.x, aB.y, "#4CAF50", "aBAᵗ", [2,3]);
+                drawMappedArrow(accCtx, mAcc, 0, 0, aB_n.x, aB_n.y, "#2196F3", "aBⁿ", [6,4]);
+                drawMappedArrow(accCtx, mAcc, aB_n.x, aB_n.y, aB.x, aB.y, "#2196F3", "aBᵗ", [2,3]);
 
             } else {
-                let r = parseFloat(document.getElementById('R').value), l = parseFloat(document.getElementById('L-sl').value);
-                let th3 = Math.asin(-r*Math.sin(th2)/l), d = r*Math.cos(th2) + l*Math.cos(th3);
-                
-                let mPos = createCoordinateMapper(posCanvas.width, posCanvas.height, [{x:0,y:0},{x:r*Math.cos(th2),y:r*Math.sin(th2)},{x:d,y:0}]);
+                // ── SLIDER-CRANK ──
+                let r = parseFloat(document.getElementById('R').value);
+                let l = parseFloat(document.getElementById('L-sl').value);
+                let sinB = -r*Math.sin(th2)/l;
+                if (Math.abs(sinB) > 1) return alert("Cannot assemble at this angle.");
+                let th3 = Math.asin(sinB);
+                let d   = r*Math.cos(th2) + l*Math.cos(th3);
+
+                // ── POSITION ──
+                let Ax = r*Math.cos(th2), Ay = r*Math.sin(th2);
+                let mPos = createCoordinateMapper(posCanvas.width, posCanvas.height,
+                    [{x:0,y:0},{x:Ax,y:Ay},{x:d,y:0}]);
                 drawSmartGrid(posCtx, posCanvas.width, posCanvas.height, mPos);
-                drawMappedArrow(posCtx, mPos, 0,0, d,0, "#9E9E9E", "d");
-                drawMappedArrow(posCtx, mPos, 0,0, r*Math.cos(th2),r*Math.sin(th2), "#FF5252", "r2");
-                drawMappedArrow(posCtx, mPos, r*Math.cos(th2),r*Math.sin(th2), d,0, "#4CAF50", "r3");
+                drawMappedArrow(posCtx, mPos,  0,  0, Ax, Ay, "#FF5252", "r₂");   // crank
+                drawMappedArrow(posCtx, mPos, Ax, Ay,  d,  0, "#4CAF50", "r₃");   // rod
+                drawMappedArrow(posCtx, mPos,  0,  0,  d,  0, "#9E9E9E", "d");    // slider displacement
 
-                let w3 = (-r*w2*Math.cos(th2))/(l*Math.cos(th3)), vb = -r*w2*Math.sin(th2)-l*w3*Math.sin(th3);
-                let vA = {x:-r*w2*Math.sin(th2), y:r*w2*Math.cos(th2)}, vB = {x:vb, y:0};
-                let mVel = createCoordinateMapper(velCanvas.width, velCanvas.height, [{x:0,y:0}, vA, vB]);
+                // ── VELOCITY ──
+                let w3  = (-r*w2*Math.cos(th2)) / (l*Math.cos(th3));
+                let vd  = -r*w2*Math.sin(th2) - l*w3*Math.sin(th3);  // slider velocity
+                let vA  = { x: -r*w2*Math.sin(th2), y:  r*w2*Math.cos(th2) };
+                let vBA = { x: -l*w3*Math.sin(th3), y:  l*w3*Math.cos(th3) };
+                let vB  = { x: vA.x + vBA.x,        y:  vA.y + vBA.y       };  // should be (vd, 0)
+
+                let mVel = createCoordinateMapper(velCanvas.width, velCanvas.height,
+                    [{x:0,y:0}, vA, vB]);
                 drawSmartGrid(velCtx, velCanvas.width, velCanvas.height, mVel);
-                drawMappedArrow(velCtx, mVel, 0,0, vA.x,vA.y, "red", "vA");
-                drawMappedArrow(velCtx, mVel, vA.x,vA.y, vB.x,vB.y, "green", "vBA");
-                drawMappedArrow(velCtx, mVel, 0,0, vB.x,vB.y, "blue", "vB");
+                drawMappedArrow(velCtx, mVel,    0,    0, vA.x, vA.y, "#FF5252", "vA");
+                drawMappedArrow(velCtx, mVel, vA.x, vA.y, vB.x, vB.y, "#4CAF50", "vBA");
+                drawMappedArrow(velCtx, mVel,    0,    0, vB.x,    0, "#2196F3", "vB");  // horizontal only
 
-                let aA_n = {x:-r*w2*w2*Math.cos(th2), y:-r*w2*w2*Math.sin(th2)};
-                let aA_t = {x:-r*a2*Math.sin(th2), y:r*a2*Math.cos(th2)};
-                let aA = {x:aA_n.x+aA_t.x, y:aA_n.y+aA_t.y};
-                let a3 = (r*w2*w2*Math.sin(th2) - r*a2*Math.cos(th2) + l*w3*w3*Math.sin(th3))/(l*Math.cos(th3));
-                let ab = -r*a2*Math.sin(th2) - r*w2*w2*Math.cos(th2) - l*a3*Math.sin(th3) - l*w3*w3*Math.cos(th3);
-                let aBA_n = {x:-l*w3*w3*Math.cos(th3), y:-l*w3*w3*Math.sin(th3)};
-                let aBA_t = {x:-l*a3*Math.sin(th3), y:l*a3*Math.cos(th3)};
-                
-                let pO={x:0,y:0}, pAn=aA_n, pA=aA, pBAn={x:aA.x+aBA_n.x, y:aA.y+aBA_n.y}, pB={x:ab, y:0};
-                let mAcc = createCoordinateMapper(accCanvas.width, accCanvas.height, [pO,pAn,pA,pBAn,pB]);
+                // ── ACCELERATION ──
+                let aA_n = { x: -r*w2*w2*Math.cos(th2), y: -r*w2*w2*Math.sin(th2) };
+                let aA_t = { x: -r*a2 *Math.sin(th2),   y:  r*a2 *Math.cos(th2)   };
+                let aA   = { x: aA_n.x + aA_t.x,        y:  aA_n.y + aA_t.y       };
+
+                let aBA_n = { x: -l*w3*w3*Math.cos(th3), y: -l*w3*w3*Math.sin(th3) };
+                // a3 from constraint: slider moves only horizontally
+                let a3 = (aA.y + aBA_n.y) / (-l*Math.cos(th3));  // derived from y-component = 0
+                let aBA_t = { x: -l*a3*Math.sin(th3), y: l*a3*Math.cos(th3) };
+                let aBA   = { x: aBA_n.x + aBA_t.x,   y: aBA_n.y + aBA_t.y  };
+                let aB    = { x: aA.x + aBA.x,         y: 0                   };  // slider: y=0
+
+                let p_aBA_n = { x: aA.x + aBA_n.x, y: aA.y + aBA_n.y };
+                let mAcc = createCoordinateMapper(accCanvas.width, accCanvas.height,
+                    [{x:0,y:0}, aA_n, aA, p_aBA_n, aB]);
                 drawSmartGrid(accCtx, accCanvas.width, accCanvas.height, mAcc);
 
-                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pA.x,pA.y, "red", "aA");
-                drawMappedArrow(accCtx, mAcc, pA.x,pA.y, pB.x,pB.y, "green", "aBA");
-                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pB.x,pB.y, "blue", "aB");
-                drawMappedArrow(accCtx, mAcc, pO.x,pO.y, pAn.x,pAn.y, "red", "aA_n", [6,4]);
-                drawMappedArrow(accCtx, mAcc, pAn.x,pAn.y, pA.x,pA.y, "red", "aA_t", [2,3]);
-                drawMappedArrow(accCtx, mAcc, pA.x,pA.y, pBAn.x,pBAn.y, "green", "aBA_n", [6,4]);
-                drawMappedArrow(accCtx, mAcc, pBAn.x,pBAn.y, pB.x,pB.y, "green", "aBA_t", [2,3]);
+                drawMappedArrow(accCtx, mAcc, 0, 0, aA.x, aA.y, "#FF5252", "aA");
+                drawMappedArrow(accCtx, mAcc, aA.x, aA.y, aB.x, aB.y, "#4CAF50", "aBA");
+                drawMappedArrow(accCtx, mAcc, 0, 0, aB.x, 0, "#2196F3", "aB");
+                drawMappedArrow(accCtx, mAcc, 0, 0, aA_n.x, aA_n.y, "#FF5252", "aAⁿ", [6,4]);
+                drawMappedArrow(accCtx, mAcc, aA_n.x, aA_n.y, aA.x, aA.y, "#FF5252", "aAᵗ", [2,3]);
+                drawMappedArrow(accCtx, mAcc, aA.x, aA.y, p_aBA_n.x, p_aBA_n.y, "#4CAF50", "aBAⁿ", [6,4]);
+                drawMappedArrow(accCtx, mAcc, p_aBA_n.x, p_aBA_n.y, aB.x, aB.y, "#4CAF50", "aBAᵗ", [2,3]);
             }
         }
-
-        // Variable Array Finite Difference Calculator
+        
+        // Variable Spacing Numerical Derivative (for Slider Crank)
         function getDerivative(yArray, xArray) {
             let dy = [];
             for(let i=0; i<yArray.length; i++) {
                 if(i===0) {
-                    let dx = xArray[1] - xArray[0];
-                    dy.push(dx===0 ? 0 : (yArray[1] - yArray[0]) / dx);
+                    let dx = xArray[1]-xArray[0];
+                    dy.push(dx===0 ? 0 : (yArray[1]-yArray[0])/dx);
                 }
                 else if(i===yArray.length-1) {
-                    let dx = xArray[i] - xArray[i-1];
-                    dy.push(dx===0 ? 0 : (yArray[i] - yArray[i-1]) / dx);
+                    let dx = xArray[i]-xArray[i-1];
+                    dy.push(dx===0 ? 0 : (yArray[i]-yArray[i-1])/dx);
                 }
                 else {
-                    let dx = xArray[i+1] - xArray[i-1];
-                    dy.push(dx===0 ? 0 : (yArray[i+1] - yArray[i-1]) / dx);
+                    let dx = xArray[i+1]-xArray[i-1];
+                    dy.push(dx===0 ? 0 : (yArray[i+1]-yArray[i-1])/dx);
                 }
             } return dy;
         }
@@ -570,46 +567,57 @@
             if(currentMech === 'fourbar') {
                 let { l1, l2, l3, l4 } = getMappedLengths(); 
                 let cpL = parseFloat(document.getElementById('CpL').value), cpA = parseFloat(document.getElementById('CpA').value)*Math.PI/180;
-                
-                let res = getReachableAngles(theta, l1, l2, l3, l4);
-                let angles = res.angles;
-                
-                if(angles.length < 3) return alert("Not enough data to plot. Mechanism may be completely bound.");
-
-                let px = [], py = [], pxa = [], pya = [], xData = [], xDataDeg = [];
-                
-                for (let t of angles) {
-                    let ax=l2*Math.cos(t), ay=l2*Math.sin(t), dist=Math.hypot(l1-ax,-ay);
-                    let p1=Math.atan2(-ay,l1-ax);
-                    let cos_val = Math.max(-1, Math.min(1, (l3*l3+dist*dist-l4*l4)/(2*l3*dist)));
-                    let p2 = Math.acos(cos_val);
-                    px.push(ax+cpL*Math.cos(p1-p2+cpA)); py.push(ay+cpL*Math.sin(p1-p2+cpA));
-                    pxa.push(ax+cpL*Math.cos(p1+p2+cpA)); pya.push(ay+cpL*Math.sin(p1+p2+cpA));
-                    xData.push(t); 
-                    xDataDeg.push(t*180/Math.PI);
-                }
-                
                 let mode = parseInt(document.querySelector('input[name="assembly-mode"]:checked').value);
-                let sel_px = mode === 1 ? px : pxa;
-                let sel_py = mode === 1 ? py : pya;
                 
-                // Differentiate using variable-step calculus due to boundary root injection
-                let vx_th=getDerivative(sel_px, xData), vy_th=getDerivative(sel_py, xData);
-                let ax_th2=getDerivative(vx_th, xData), ay_th2=getDerivative(vy_th, xData);
-                
+                let px = [], py = [], pxa = [], pya = [], xDataDeg = [];
                 let yVx = [], yVy = [], yAx = [], yAy = [];
-                for(let i=0; i<xData.length; i++) {
-                    yVx.push(vx_th[i] * in_w2);
-                    yVy.push(vy_th[i] * in_w2);
-                    yAx.push(ax_th2[i] * in_w2 * in_w2 + vx_th[i] * in_a2);
-                    yAy.push(ay_th2[i] * in_w2 * in_w2 + vy_th[i] * in_a2);
+                
+                // Sweep strictly 0 to 360 to prevent x-axis bloat
+                for (let t=0; t<=Math.PI*2.001; t+=0.02) {
+                    let ax=l2*Math.cos(t), ay=l2*Math.sin(t), dist=Math.hypot(l1-ax,-ay);
+                    xDataDeg.push(t*180/Math.PI);
+                    
+                    if(dist<=l3+l4+1e-3 && dist>=Math.abs(l3-l4)-1e-3) {
+                        let p1=Math.atan2(-ay,l1-ax);
+                        let cos_val = Math.max(-1, Math.min(1, (l3*l3+dist*dist-l4*l4)/(2*l3*dist)));
+                        let p2 = Math.acos(cos_val);
+                        
+                        px.push(ax+cpL*Math.cos(p1-p2+cpA)); py.push(ay+cpL*Math.sin(p1-p2+cpA));
+                        pxa.push(ax+cpL*Math.cos(p1+p2+cpA)); pya.push(ay+cpL*Math.sin(p1+p2+cpA));
+
+                        // ANALYTIC EXACT KINEMATICS (Flawless curves, zero spikes)
+                        let th2 = t;
+                        let th3 = p1 - mode * p2;
+                        let bx = ax + l3*Math.cos(th3), by = ay + l3*Math.sin(th3);
+                        let th4 = Math.atan2(by, bx-l1);
+
+                        let sinDiff = Math.sin(th3-th4);
+                        let w3 = 0, a3 = 0;
+                        if (Math.abs(sinDiff) > 1e-6) {
+                            w3 = (l2*in_w2*Math.sin(th4-th2))/ (l3*sinDiff);
+                            let w4 = (l2*in_w2*Math.sin(th3-th2))/ (l4*sinDiff);
+                            let rhs_x = -l2*in_w2*in_w2*Math.cos(th2) - l2*in_a2*Math.sin(th2) - l3*w3*w3*Math.cos(th3) + l4*w4*w4*Math.cos(th4);
+                            let rhs_y = -l2*in_w2*in_w2*Math.sin(th2) + l2*in_a2*Math.cos(th2) - l3*w3*w3*Math.sin(th3) + l4*w4*w4*Math.sin(th4);
+                            a3 = (rhs_x*Math.cos(th4) + rhs_y*Math.sin(th4)) / (Math.sin(th3-th4)*l3);
+                        }
+
+                        yVx.push(-l2*in_w2*Math.sin(th2) - cpL*w3*Math.sin(th3+cpA));
+                        yVy.push(l2*in_w2*Math.cos(th2) + cpL*w3*Math.cos(th3+cpA));
+
+                        yAx.push(-l2*in_a2*Math.sin(th2) - l2*in_w2*in_w2*Math.cos(th2) - cpL*a3*Math.sin(th3+cpA) - cpL*w3*w3*Math.cos(th3+cpA));
+                        yAy.push(l2*in_a2*Math.cos(th2) - l2*in_w2*in_w2*Math.sin(th2) + cpL*a3*Math.cos(th3+cpA) - cpL*w3*w3*Math.sin(th3+cpA));
+                    } else {
+                        // Breaks the line securely when mechanism is in a deadzone
+                        px.push(null); py.push(null); pxa.push(null); pya.push(null);
+                        yVx.push(null); yVy.push(null); yAx.push(null); yAy.push(null);
+                    }
                 }
                 
                 document.getElementById('graph-trace').style.display = "block";
                 Plotly.newPlot('graph-trace', [
                     { x: px, y: py, mode: 'lines', name: 'Open (Cyan)', line: {color: 'cyan', width: 2} },
                     { x: pxa, y: pya, mode: 'lines', name: 'Crossed (Orange)', line: {color: '#FF9800', width: 2, dash: 'dot'} }
-                ], { title: "Coupler Curve", margin: {t:40, b:40, l:50, r:20}, plot_bgcolor: "#f8f9fa", yaxis:{scaleanchor:'x', scaleratio:1} });
+                ], { title: "Coupler Exact Path Trace", margin: {t:40, b:40, l:50, r:20}, plot_bgcolor: "#f8f9fa", yaxis:{scaleanchor:'x', scaleratio:1} });
 
                 Plotly.newPlot('graph-vel', [
                     {x: xDataDeg, y: yVx, mode: 'lines', name: 'V_x', line: {color: 'blue', width: 2.5}},
@@ -627,7 +635,7 @@
                 let inv = document.querySelector('input[name="sl-ground-link"]:checked').value;
                 
                 let dx = 0.05, d_arr = [], xData = [], xDataDeg = [];
-                for (let t=0; t<=Math.PI*2; t+=dx) {
+                for (let t=0; t<=Math.PI*2.01; t+=dx) {
                     let d = r*Math.cos(t) + Math.sqrt(l*l - r*r*Math.pow(Math.sin(t),2));
                     if(inv === "4") d = -r*Math.cos(t) + Math.sqrt(l*l - r*r*Math.pow(Math.sin(t),2));
                     d_arr.push(d); 
@@ -733,7 +741,7 @@
 
                     const col = id => id===1?'#9E9E9E':id===2?'#FF5252':id===3?'#4CAF50':'#2196F3';
                     const dl = (x1,y1,x2,y2,id) => { if(id===shortestId) drawLine(x1,y1,x2,y2,'rgba(255,235,59,0.6)', 16); drawLine(x1,y1,x2,y2,col(id), 8); };
-                    dl(0,0,l1,0,id1); dl(0,0,ax,ay,id2); dl(ax,ay,bx,by,id3); dl(l1,0,bx,by,id4);     
+                    dl(0,0,l1,0,id1); dl(0,0,ax,ay,id2); dl(ax,ay,bx,by,id3); dl(l1,0,bx,by,id4);    
                     drawJoint(0,0,col(id1)); drawJoint(l1,0,col(id1)); drawJoint(ax,ay,col(id2)); drawJoint(bx,by,col(id4)); drawJoint(px,py,'#00FFFF');
                 }
             } else {
