@@ -74,7 +74,7 @@
                     </div>
                 </div>
                 <div class="control-group" style="background: #333; padding: 10px; border-radius: 8px; margin-top: 10px;">
-                    <label style="color: #E0E0E0; text-align: center;">🔄 Assembly Mode</label>
+                    <label style="color: #E0E0E0; text-align: center;">🔄 Assembly Mode (Coupler Curve)</label>
                     <div style="display: flex; justify-content: space-around;">
                         <label><input type="radio" name="assembly-mode" value="1" checked onchange="calcTrace()"> Open (Cyan)</label>
                         <label><input type="radio" name="assembly-mode" value="-1" onchange="calcTrace()"> Crossed (Orange)</label>
@@ -218,25 +218,22 @@
             return dist <= l3+l4+1e-4 && dist >= Math.abs(l3-l4)-1e-4;
         }
 
-        // Master function to isolate ONLY the trace sector reachable from the current animation angle
         function getReachableAngles(currentTheta, l1, l2, l3, l4) {
             let startTh = currentTheta;
             
-            // If current angle is completely broken, try to find a valid starting point
             if (!checkValid(startTh, l1, l2, l3, l4)) {
                 let found = false;
                 for(let off=0; off<=Math.PI; off+=0.02) {
                     if (checkValid(startTh + off, l1, l2, l3, l4)) { startTh = startTh + off; found = true; break; }
                     if (checkValid(startTh - off, l1, l2, l3, l4)) { startTh = startTh - off; found = true; break; }
                 }
-                if(!found) return { angles: [], newTheta: startTh }; // Impossible geometry
+                if(!found) return { angles: [], newTheta: startTh }; 
             }
             
             let step = 0.02;
             let forward = [], backward = [];
             let fullRotation = false;
             
-            // Walk forward
             for(let off=0; off <= Math.PI*2; off+=step) {
                 let t = startTh + off;
                 if (checkValid(t, l1, l2, l3, l4)) {
@@ -245,7 +242,6 @@
                 } else break;
             }
             
-            // Walk backward if it hits a wall
             if (!fullRotation) {
                 for(let off=step; off <= Math.PI*2; off+=step) {
                     let t = startTh - off;
@@ -257,7 +253,6 @@
             backward.reverse();
             let reachable = backward.concat(forward);
             
-            // Append exact analytic roots so the Open and Crossed curves meet perfectly at the boundaries
             if (!fullRotation && reachable.length > 0) {
                 let d_max = l3 + l4, d_min = Math.abs(l3 - l4);
                 let cos_max = (l1*l1 + l2*l2 - d_max*d_max) / (2*l1*l2);
@@ -301,7 +296,7 @@
                 else { stat.innerText = "Status: Non-Grashof (Rocker)"; stat.className = "status-bad"; }
 
                 let res = getReachableAngles(theta, l1, l2, l3, l4);
-                theta = res.newTheta; // Snap theta safely into bounds
+                theta = res.newTheta; 
 
                 for (let t of res.angles) { 
                     let ax = l2 * Math.cos(t), ay = l2 * Math.sin(t), dist = Math.hypot(l1 - ax, -ay);
@@ -555,31 +550,42 @@
 
         function generatePlots() {
             if(document.getElementById('status').innerText.includes("Error")) return alert("Mechanism broken.");
-            let dx = 0.05, xData = [], yV = [], yA = [], px = [], py = [], pxa = [], pya = [];
+            let dx = 0.05, xData = []; 
             let in_w2 = parseFloat(document.getElementById('in_w2').value) || 1, in_a2 = parseFloat(document.getElementById('in_a2').value) || 0;
+
+            let layoutVel = { plot_bgcolor: "#f8f9fa", margin: {t:40, b:40, l:50, r:20}, title: "Velocity vs Angle", xaxis: {title: 'Crank Angle (deg)'}, yaxis: {title: 'Velocity'} };
+            let layoutAcc = { plot_bgcolor: "#f8f9fa", margin: {t:40, b:40, l:50, r:20}, title: "Acceleration vs Angle", xaxis: {title: 'Crank Angle (deg)'}, yaxis: {title: 'Acceleration'} };
 
             if(currentMech === 'fourbar') {
                 let { l1, l2, l3, l4 } = getMappedLengths(); 
                 let cpL = parseFloat(document.getElementById('CpL').value), cpA = parseFloat(document.getElementById('CpA').value)*Math.PI/180;
-                let res = getReachableAngles(theta, l1, l2, l3, l4);
+                let evalAngles = getEvaluationAngles(l1, l2, l3, l4);
+                let px = [], py = [], pxa = [], pya = [];
                 
-                for (let t of res.angles) {
+                for (let t of evalAngles) {
                     let ax=l2*Math.cos(t), ay=l2*Math.sin(t), dist=Math.hypot(l1-ax,-ay);
-                    let p1=Math.atan2(-ay,l1-ax);
-                    let cos_val = Math.max(-1, Math.min(1, (l3*l3+dist*dist-l4*l4)/(2*l3*dist)));
-                    let p2 = Math.acos(cos_val);
-                    px.push(ax+cpL*Math.cos(p1-p2+cpA)); py.push(ay+cpL*Math.sin(p1-p2+cpA));
-                    pxa.push(ax+cpL*Math.cos(p1+p2+cpA)); pya.push(ay+cpL*Math.sin(p1+p2+cpA));
-                    xData.push(t*180/Math.PI); 
+                    if(dist<=l3+l4+1e-3 && dist>=Math.abs(l3-l4)-1e-3) {
+                        let p1=Math.atan2(-ay,l1-ax);
+                        let cos_val = Math.max(-1, Math.min(1, (l3*l3+dist*dist-l4*l4)/(2*l3*dist)));
+                        let p2 = Math.acos(cos_val);
+                        px.push(ax+cpL*Math.cos(p1-p2+cpA)); py.push(ay+cpL*Math.sin(p1-p2+cpA));
+                        pxa.push(ax+cpL*Math.cos(p1+p2+cpA)); pya.push(ay+cpL*Math.sin(p1+p2+cpA));
+                        xData.push(t*180/Math.PI); 
+                    }
                 }
                 let mode = parseInt(document.querySelector('input[name="assembly-mode"]:checked').value);
                 let sel_px = mode === 1 ? px : pxa;
                 let sel_py = mode === 1 ? py : pya;
                 
                 let vx=getDerivative(sel_px,dx), vy=getDerivative(sel_py,dx), ax=getDerivative(vx,dx), ay=getDerivative(vy,dx);
+                
+                // Plotting exact X and Y components to show negative/positive directionality 
+                let yVx = [], yVy = [], yAx = [], yAy = [];
                 for(let i=0; i<xData.length; i++) {
-                    yV.push(Math.hypot(vx[i]*in_w2, vy[i]*in_w2));
-                    yA.push(Math.hypot(ax[i]*in_w2*in_w2 + vx[i]*in_a2, ay[i]*in_w2*in_w2 + vy[i]*in_a2));
+                    yVx.push(vx[i]*in_w2);
+                    yVy.push(vy[i]*in_w2);
+                    yAx.push(ax[i]*in_w2*in_w2 + vx[i]*in_a2);
+                    yAy.push(ay[i]*in_w2*in_w2 + vy[i]*in_a2);
                 }
                 
                 document.getElementById('graph-trace').style.display = "block";
@@ -587,6 +593,16 @@
                     { x: px, y: py, mode: 'lines', name: 'Open (Cyan)', line: {color: 'cyan', width: 2} },
                     { x: pxa, y: pya, mode: 'lines', name: 'Crossed (Orange)', line: {color: '#FF9800', width: 2, dash: 'dot'} }
                 ], { title: "Coupler Curve", margin: {t:40, b:40, l:50, r:20}, plot_bgcolor: "#f8f9fa", yaxis:{scaleanchor:'x', scaleratio:1} });
+
+                Plotly.newPlot('graph-vel', [
+                    {x:xData, y:yVx, mode:'lines', name: 'V_x', line:{color:'blue', width: 2.5}},
+                    {x:xData, y:yVy, mode:'lines', name: 'V_y', line:{color:'cyan', width: 2.5, dash:'dash'}}
+                ], layoutVel);
+
+                Plotly.newPlot('graph-acc', [
+                    {x:xData, y:yAx, mode:'lines', name: 'A_x', line:{color:'red', width: 2.5}},
+                    {x:xData, y:yAy, mode:'lines', name: 'A_y', line:{color:'orange', width: 2.5, dash:'dash'}}
+                ], layoutAcc);
 
             } else {
                 document.getElementById('graph-trace').style.display = "none";
@@ -598,13 +614,19 @@
                     d_arr.push(d); xData.push(t*180/Math.PI);
                 }
                 let vel = getDerivative(d_arr,dx), acc = getDerivative(vel,dx);
-                for(let i=0; i<xData.length; i++) { yV.push(Math.abs(vel[i]*in_w2)); yA.push(Math.abs(acc[i]*in_w2*in_w2 + vel[i]*in_a2)); }
+                
+                // Absolute Value removed to show exact 1D directional magnitude
+                let yV = [], yA = [];
+                for(let i=0; i<xData.length; i++) { 
+                    yV.push(vel[i]*in_w2); 
+                    yA.push(acc[i]*in_w2*in_w2 + vel[i]*in_a2); 
+                }
+                
+                Plotly.newPlot('graph-vel', [{x:xData, y:yV, mode:'lines', name: 'Velocity', line:{color:'blue', width: 2.5}}], layoutVel);
+                Plotly.newPlot('graph-acc', [{x:xData, y:yA, mode:'lines', name: 'Acceleration', line:{color:'red', width: 2.5}}], layoutAcc);
             }
             
             document.getElementById('plot-modal').style.display = 'flex';
-            let layout = { plot_bgcolor: "#f8f9fa", margin: {t:40, b:40, l:50, r:20} };
-            layout.title = "Velocity Magnitude"; Plotly.newPlot('graph-vel', [{x:xData, y:yV, mode:'lines', line:{color:'blue'}}], layout);
-            layout.title = "Acceleration Magnitude"; Plotly.newPlot('graph-acc', [{x:xData, y:yA, mode:'lines', line:{color:'red'}}], layout);
         }
 
         function drawLine(x1, y1, x2, y2, color, w) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.strokeStyle = color; ctx.lineWidth = w/currentScale; ctx.lineCap = 'round'; ctx.stroke(); }
