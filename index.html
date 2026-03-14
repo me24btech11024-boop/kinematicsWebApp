@@ -756,28 +756,6 @@
                 theta = nextTheta;
                 // Safely keep theta wrapped within 0 to 2PI
                 theta = (theta % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
-                // --- PI TOGGLE FOR SPECIAL GRASHOF ONLY ---
-let L = [l1, l2, l3, l4].sort((a,b)=>a-b);
-
-// Special Grashof condition:  S + L = P + Q
-let isSpecialGrashof = Math.abs((L[0] + L[3]) - (L[1] + L[2])) < 1e-4;
-
-if (isSpecialGrashof) {
-
-    const tol = 0.02; // tolerance around π
-
-    if (Math.abs(theta - Math.PI) < tol) {
-
-        let modeRadios = document.getElementsByName('assembly-mode');
-
-        if (modeRadios[0].checked)
-            modeRadios[1].checked = true;
-        else
-            modeRadios[0].checked = true;
-
-        calcTrace(); // recompute coupler curve
-    }
-}
 
                 let ax = l2*Math.cos(theta), ay = l2*Math.sin(theta), dist = Math.hypot(l1-ax, -ay);
                 if (checkValid(theta, l1, l2, l3, l4)) {
